@@ -5,6 +5,7 @@ import scala.io.Source
 
 object IO {
   def addToFile (puzzlesFile: File, puzzle: Puzzle): Unit = this.synchronized {
+    puzzlesFile.getParentFile.mkdirs ()
     val out = new PrintWriter (new FileWriter (puzzlesFile, puzzlesFile.exists))
     out.println (Puzzle.toCode (puzzle))
     out.close ()

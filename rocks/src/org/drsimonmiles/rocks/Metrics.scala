@@ -5,17 +5,14 @@ import org.drsimonmiles.rocks.Solve.solve
 import scala.annotation.tailrec
 
 object Metrics extends App {
-  def loadData (): List[(Int, Int, Int, Int)] =
+  /*def loadData (): List[(Int, Int, Int, Int)] =
     for ((puzzle, index) <- IO.load (Configuration.puzzlesFile).zipWithIndex) yield {
       print (".")
       solve (Game (puzzle))(() => false) match {
         case Some (solution) => (index, length (solution), 0 /*breadth (puzzle)*/, weaving (puzzle, solution))
         case None => (index, 0, 0, 0)
       }
-    }
-
-  IO.saveMetrics ("metrics.csv", loadData ())
-  println (" done")
+    }*/
 
   def breadth (puzzle: Puzzle): Int = {
     @tailrec

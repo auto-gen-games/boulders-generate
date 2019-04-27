@@ -1,27 +1,25 @@
 package org.drsimonmiles.rocks
 
-import java.lang.System.currentTimeMillis
 import org.drsimonmiles.agg.PuzzleRefiner.generate
 import org.drsimonmiles.itapprox.{Both, Choice, Decision}
 import org.drsimonmiles.itapprox.Decision.{only, or, preferredDecision}
-import org.drsimonmiles.rocks.Configuration._
 import org.drsimonmiles.rocks.Game.{move, perform}
-import org.drsimonmiles.rocks.Metrics.{length, weaving}
 import org.drsimonmiles.rocks.Puzzle.setBoulders
 import org.drsimonmiles.rocks.Solve.solve
 import org.drsimonmiles.util.{Logger, Measure}
+import org.drsimonmiles.util.TimeOut.timeOutFromNow
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random.{nextInt => randomInt}
 
 object PuzzleCreation {
   /** Generate a random puzzle and return it if successful. */
-  def createPuzzle (): Option[Puzzle] = {
+  def createPuzzle (width: Int, height: Int, hopelessLength: Int, timePerAttempt: Long): Option[Puzzle] = {
     // Create the initial grid with man, star and exit placed
-    val initialPuzzle = createInitialGrid ()
+    val initialPuzzle = createInitialGrid (width, height)
     // The initial choices regard how to ensure the man does not fall and neither man nor star is squashed at the start
-    val initialChoices = Nil ++ supportChoice (initialPuzzle.man) ++ notSquashedChoice (initialPuzzle.man) ++
-      initialPuzzle.star.flatMap (notSquashedChoice)
-    val terminate = timeOutFromNow
+    val initialChoices = Nil ++ supportChoice (initialPuzzle.man, width, height) ++ notSquashedChoice (initialPuzzle.man) ++ notSquashedChoice (initialPuzzle.star)
+    // Time limit on attempting to generate this puzzle
+    val terminate = timeOutFromNow (timePerAttempt)
     val solver = createSolver (terminate)
     // A buffer for tried states in the puzzle creation exploration
     val buffer = new CreateBuffer ()
@@ -29,17 +27,17 @@ object PuzzleCreation {
 
     // Generate a puzzle using puzzle refinement, and perform a final check that the solution is acceptably hard
     generate (initialPuzzle, initialChoices, hopelessLength, terminate, consequences, bufferedImprove, solver, acceptablyHard, harder).
-      filter (puzzle => createSolver (timeOutFromNow)(puzzle).exists (solution => acceptablyHard (puzzle, solution)))
+      filter (puzzle => createSolver (timeOutFromNow (timePerAttempt))(puzzle).exists (solution => acceptablyHard (puzzle, solution)))
   }
 
   /** Generate the initial grid, with a man, exit and star set. */
-  def createInitialGrid (): Puzzle = {
+  def createInitialGrid (width: Int, height: Int): Puzzle = {
     // First choose the position of the man (in left half of grid, to avoid generating symmetrical puzzles), exit and star
     val man = randomPosition (minX = 0, minY = 0, maxX = Math.round (width.toFloat / 2), maxY = height, disallowed = Nil)
     val exit = randomPosition (minX = 0, minY = 0, maxX = width, maxY = height, disallowed = List (man))
-    val star = if (addStar) Some (randomPosition (minX = 0, minY = 0, maxX = width, maxY = height, disallowed = List (man, exit))) else None
+    val star = randomPosition (minX = 0, minY = 0, maxX = width, maxY = height, disallowed = List (man, exit))
     // The initial puzzle has no boulders at the same positions as the man, exit or star
-    setBoulders (Puzzle (width, height, man, exit, star), List (exit, man) ::: star.toList, false).get
+    setBoulders (Puzzle (width, height, man, exit, star), List (exit, man, star), false).get
   }
 
   /** Generate a random position within the given bounds (minX and minY inclusive, maxX and maxY exclusive) and
@@ -50,18 +48,13 @@ object PuzzleCreation {
     else position
   }
 
-  def timeOutFromNow: () => Boolean = {
-    val stopAt = currentTimeMillis + timePerAttempt
-    () => appTerminated || System.currentTimeMillis >= stopAt
-  }
-
   /** Define a solver for a puzzle with a timeout based on the current time */
   def createSolver (timeOut: () => Boolean): Puzzle => Option[List[Move]] = {
     puzzle: Puzzle => solve (Game (puzzle))(timeOut)
   }
 
   /** Create the choice, if any, that needs to be made on how the given man start position should be supported. */
-  def supportChoice (man: Position): Option[Choice[Puzzle]] =
+  def supportChoice (man: Position, width: Int, height: Int): Option[Choice[Puzzle]] =
   // If the man is on the lowest level, there are no choices required to be made
     if (man.y == height - 1) None
     // If the man is at the extreme left or right, only a floor can support him (no boulders can start cornered)
@@ -205,9 +198,10 @@ object PuzzleCreation {
   }
 
   /** Determine whether the difficulty of a given puzzle is acceptable, as determined by the number of non-fall
-    *  moves in the solution (length) and the number of repeat visits to positions required (non-linearity/weaving) */
+    *  moves in the solution (length) and the number of repeat visits to positions required (non-linearity/weaving)
+    * Ignored for now (always true). */
   def acceptablyHard (puzzle: Puzzle, solution: List[Move]): Boolean =
-    length (solution) >= minLength && weaving (puzzle, solution) >= minWeaving
+    true // length (solution) >= minLength && weaving (puzzle, solution) >= minWeaving
 
   /**
     * Determines whether the first given puzzle is harder than the second, according to the number of non-fall moves

@@ -1,7 +1,9 @@
 package org.drsimonmiles.rocks
 
-import org.drsimonmiles.rocks.PuzzleCreation.{createSolver, timeOutFromNow}
+import org.drsimonmiles.rocks.Configuration.maxSolveTime
+import org.drsimonmiles.rocks.PuzzleCreation.createSolver
 import org.drsimonmiles.util.Matrix.updated
+import org.drsimonmiles.util.TimeOut.timeOutFromNow
 import scala.collection.mutable.ArrayBuffer
 
 sealed trait Setting
@@ -27,14 +29,14 @@ final case class Position (x: Int, y: Int) {
   * @param floors A 2D array (x then y indices) of whether each cell has a floor.
   * @param boulders A 2D array (x then y indices) of whether each cell has a boulder in it at start (not possible for leftmost and rightmost x).
   */
-final case class Puzzle (man: Position, exit: Position, star: Option[Position],
+final case class Puzzle (man: Position, exit: Position, star: Position,
                    walls: List[List[Setting]], floors: List[List[Setting]], boulders: List[List[Setting]]) {
   def hasBoulder (x: Int, y: Int): Boolean = x > 0 && x < width - 1 && boulders (x - 1) (y) == Yes
   def hasExit (x: Int, y: Int): Boolean = exit.at (x, y)
   def hasFloor (x: Int, y: Int): Boolean = y < 0 || y >= height - 1 || x < 0 || x >= width || floors (x)(y) == Yes
   def hasLeftWall (x: Int, y: Int): Boolean = x <= 0 || x >= width || y < 0 || y >= height || walls (x - 1)(y) == Yes
   def hasMan (x: Int, y: Int): Boolean = man.at (x, y)
-  def hasStar (x: Int, y: Int): Boolean = star.isDefined && star.get.at (x, y)
+  def hasStar (x: Int, y: Int): Boolean = star.at (x, y)
   val height: Int = boulders.head.size
   def inRange (x: Int, y: Int): Boolean = x >= 0 && x < width && y >= 0 && y < height
   def knowBoulder (x: Int, y: Int): Boolean = x <= 0 || x >= width - 1 || y < 0 || y >= height || boulders (x - 1)(y) != Unspecified
@@ -44,7 +46,7 @@ final case class Puzzle (man: Position, exit: Position, star: Option[Position],
 }
 
 object Puzzle {
-  def apply (width: Int, height: Int, man: Position, exit: Position, star: Option[Position]): Puzzle = {
+  def apply (width: Int, height: Int, man: Position, exit: Position, star: Position): Puzzle = {
     def empty (across: Int, down: Int): List[List[Setting]] = List.fill[Setting] (across, down) (Unspecified)
     new Puzzle (man, exit, star, empty (width - 1, height), empty (width, height - 1), empty (width - 2, height))
   }
@@ -90,7 +92,7 @@ object Puzzle {
   def toCode (puzzle: Puzzle): String = {
     import puzzle._
     width + "," + height + ";" + man.x + "," + man.y + ";" + exit.x + "," + exit.y + ";" +
-      (if (star.isDefined) star.get.x + "," + star.get.y + ";" else "") +
+      star.x + "," + star.y + ";" +
       (0 until height).flatMap (y => (0 until width).map (x =>
         if (hasFloor (x, y))
           if (hasLeftWall (x, y)) 'F' else if (hasBoulder (x, y)) 'E' else 'D'
@@ -106,7 +108,7 @@ object Puzzle {
     }).mkString
     def under (y: Int) = "+" + (for (x <- 0 until width) yield {(if (hasFloor (x, y)) "-" else " ") + "+"}).mkString
     val grid = outer + "\n" + (for (y <- 0 until height) yield {within (y) + "\n" + under (y) + "\n"}).mkString
-    val solution = createSolver (timeOutFromNow)(puzzle).get
+    val solution = createSolver (timeOutFromNow (maxSolveTime))(puzzle).get
     s"$grid\nlength:${Metrics.length (solution)}, weaving:${Metrics.weaving (puzzle, solution)}\n"
   }
 
@@ -137,7 +139,7 @@ object Puzzle {
     // Mark all accessible positions starting from the man's starting position
     markFrom (man.x, man.y)
     // Once marked, check that the exit and star are accessible, return the puzzle if so
-    if (accessible (exit.x)(exit.y) && (star.isEmpty || accessible (star.get.x)(star.get.y))) Some (puzzle) else None
+    if (accessible (exit.x)(exit.y) && accessible (star.x)(star.y)) Some (puzzle) else None
   }
 
   def fromCode (code: String): Option[Puzzle] = {
@@ -151,7 +153,7 @@ object Puzzle {
     val height = area.y
     val man = coordinate (parts (1))
     val exit = coordinate (parts (2))
-    val star = if (parts.length == 4) None else Some (coordinate (parts (3)))
+    val star = coordinate (parts (3))
     var puzzle: Option[Puzzle] = Some (Puzzle (width, height, man, exit, star))
     val cells = if (parts.length == 4) parts (3) else parts (4)
     for (y <- 0 until height; x <- 0 until width) {

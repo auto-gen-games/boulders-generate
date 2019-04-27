@@ -1,7 +1,8 @@
 package org.drsimonmiles.util
 
 import java.io.{File, FileWriter, PrintWriter}
-import org.drsimonmiles.rocks.{Metrics, Move, Puzzle}
+
+import org.drsimonmiles.rocks.{Configuration, Metrics, Move, Puzzle}
 
 object Logger {
   private var toLog = Vector[String] ()
@@ -9,11 +10,11 @@ object Logger {
   def show[A] (value: A): A = { println (value); value }
 
   def log[A] (value: A): A = {
-    toLog = s"${value.toString}\n" +: toLog
+    if (Configuration.logging) toLog = s"${value.toString}\n" +: toLog
     value
   }
 
-  def saveLog (): Unit = {
+  def saveLog (): Unit = if (Configuration.logging) {
     val logFile = new File ("trace.txt")
     val out = new PrintWriter (new FileWriter (logFile))
     toLog.reverse.foreach (out.println)
@@ -21,21 +22,22 @@ object Logger {
   }
 
   def trace[P] (puzzle: P): P = {
-    toLog = (toDetail (puzzle.asInstanceOf[Puzzle]) + "\n") +: toLog
+    if (Configuration.logging) toLog = (toDetail (puzzle.asInstanceOf[Puzzle]) + "\n") +: toLog
     puzzle
   }
 
   def probe[P, A] (puzzle: P, solution: Option[A]): Option[A] = {
-    if (solution.isDefined) {
-      val length = Metrics.length (solution.get.asInstanceOf[List[Move]])
-      val weaving = Metrics.weaving (puzzle.asInstanceOf[Puzzle], solution.get.asInstanceOf[List[Move]])
-      toLog = s"solved with length $length, weaving $weaving\n" +: toLog
-    } else toLog = "not solved\n" +: toLog
+    if (Configuration.logging)
+      if (solution.isDefined) {
+        val length = Metrics.length (solution.get.asInstanceOf[List[Move]])
+        val weaving = Metrics.weaving (puzzle.asInstanceOf[Puzzle], solution.get.asInstanceOf[List[Move]])
+        toLog = s"solved with length $length, weaving $weaving\n" +: toLog
+      } else toLog = "not solved\n" +: toLog
     solution
   }
 
   def record (accepted: Boolean): Boolean = {
-    toLog = s"Accepted? $accepted\n" +: toLog
+    if (Configuration.logging) toLog = s"Accepted? $accepted\n" +: toLog
     accepted
   }
 

@@ -12,7 +12,7 @@ final case class Game (puzzle: Puzzle, x: Int, y: Int, boulders: Set[(Int, Int)]
   def hasStar (sx: Int, sy: Int): Boolean = starRemains && puzzle.hasStar (sx, sy)
   val hasWon: Boolean = !starRemains && hasExit (x, y)
   val height: Int = puzzle.height
-  val star: Option[Position] = if (starRemains) puzzle.star else None
+  val star: Option[Position] = if (starRemains) Some (puzzle.star) else None
   val width: Int = puzzle.width
   override def toString = s"($x,$y)" + (if (starRemains) "*" else "") + " / " + boulders.map (b => s"(${b._1},${b._2})").mkString (" ")
 }
@@ -20,8 +20,7 @@ final case class Game (puzzle: Puzzle, x: Int, y: Int, boulders: Set[(Int, Int)]
 object Game {
   /** Create the initial game state from the given puzzle. */
   def apply (puzzle: Puzzle): Game = Game (puzzle, puzzle.man.x, puzzle.man.y,
-    (for (bx <- 1 until puzzle.width - 1; by <- 0 until puzzle.height; if puzzle.hasBoulder (bx, by)) yield (bx, by)).toSet,
-    puzzle.star.isDefined)
+    (for (bx <- 1 until puzzle.width - 1; by <- 0 until puzzle.height; if puzzle.hasBoulder (bx, by)) yield (bx, by)).toSet, true)
 
   /** Can the given move be taken in the given game state? */
   def canMove (game: Game, move: Move): Boolean = {
