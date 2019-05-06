@@ -44,20 +44,14 @@ object PathSearch {
       if (states.isEmpty) None
       else {
         val state = states.head
-        if (measure ("PS.reachedGoal", reachedGoal (state._2))) Some (state._1.reverse)
+        if (reachedGoal (state._2)) Some (state._1.reverse)
         else if (terminate ()) None
         else {
-          //println (s"St: ${state._2}")
-          val actions = measure ("PS.getAvailableActions", getAvailableActions (state._2))
-          //println ("Ac: " + actions)
-          val performed = measure ("PS.performed", actions.flatMap (move => perform (state._2, move).map (result => new SolveState (move :: state._1, result))))
-          //println ("Pe: " + performed.mkString ("\n"))
+          val actions = getAvailableActions (state._2)
+          val performed = actions.flatMap (move => perform (state._2, move).map (result => new SolveState (move :: state._1, result)))
           val filtered = performed.filter (state => !tried.exists (subsumes (_, state))).toList
-          //println ("Fi: " + filtered.mkString ("\n"))
-          val newPaths = measure ("PS.newPaths", (states.tail ++ filtered).sortWith (compare))
-          //println ("NP: " + newPaths)
-          val newTried = measure ("PS.newTried", tried ++ filtered)
-          //println ("NT: " + newTried.mkString ("\n"))
+          val newPaths = (states.tail ++ filtered).sortWith (compare)
+          val newTried = tried ++ filtered
           solve (newPaths, newTried)
         }
     }
