@@ -1,6 +1,5 @@
 package org.drsimonmiles.agg
 
-import org.drsimonmiles.util.Measure.measure
 import scala.annotation.tailrec
 
 object PathSearch {
@@ -9,6 +8,7 @@ object PathSearch {
     *
     * @param start The initial state.
     * @param terminate Returns true once a timeout has been reached.
+    * @param pathLength Measures the distance travelled by the given sequence of actions
     * @param distance Heuristic for the distance of the given state to the solution.
     * @param getAvailableActions The actions available in the given state.
     * @param perform Performs the action in the given state, returning the new state if valid.
@@ -39,20 +39,19 @@ object PathSearch {
     def subsumes (existing: (List[Action], State), newState: (List[Action], State)) =
       existing._2 == newState._2 && pathLength (existing._1) <= pathLength (newState._1)
 
+    // Perform the a-star search recursively
     @tailrec
     def solve (states: Vector[SolveState], tried: Vector[SolveState]): Option[Seq[Action]] =
       if (states.isEmpty) None
       else {
         val state = states.head
-        if (reachedGoal (state._2)) Some (state._1.reverse)
+        if (reachedGoal (state._2)) Some (state._1)
         else if (terminate ()) None
         else {
-          val actions = getAvailableActions (state._2)
-          val performed = actions.flatMap (move => perform (state._2, move).map (result => new SolveState (move :: state._1, result)))
-          val filtered = performed.filter (state => !tried.exists (subsumes (_, state))).toList
-          val newPaths = (states.tail ++ filtered).sortWith (compare)
-          val newTried = tried ++ filtered
-          solve (newPaths, newTried)
+          val filtered = getAvailableActions (state._2)
+            .flatMap (move => perform (state._2, move).map (result => new SolveState (state._1 :+ move, result)))
+            .filter (state => !tried.exists (subsumes (_, state)))
+          solve ((states.tail ++ filtered).sortWith (compare), tried ++ filtered)
         }
     }
 
