@@ -49,7 +49,7 @@ object ControlledWander {
             bestSoFar
         // If the time is up, return the best solution found
         if (terminate ())
-          { println (s"Explored $steps states, timed out"); newBest }
+          { /*println (s"Explored $steps states, timed out");*/ newBest }
         else
           // If the decision path still looks worth exploring, make some choices, else try other unexplored paths
           if (!looksHopeless (state.prior))
@@ -65,7 +65,7 @@ object ControlledWander {
         else
           wanderFrom (remainder, newBest)
       // If no decision paths are left to try, return the best solution found
-      case Nil => println (s"Explored $steps states, no decisions left"); bestSoFar
+      case Nil => /*println (s"Explored $steps states, no decisions left");*/ bestSoFar
     }
 
     wanderFrom (List (Position (initialState, initialChoices, List (initialState))), None)

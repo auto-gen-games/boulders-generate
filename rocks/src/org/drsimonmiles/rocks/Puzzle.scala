@@ -94,8 +94,7 @@ object Puzzle {
     width + "," + height + ";" + man.x + "," + man.y + ";" + exit.x + "," + exit.y + ";" +
       star.x + "," + star.y + ";" +
       (0 until height).flatMap (y => (0 until width).map (x =>
-        if (hasFloor (x, y))
-          if (hasLeftWall (x, y)) 'F' else if (hasBoulder (x, y)) 'E' else 'D'
+        if (hasFloor (x, y)) if (hasLeftWall (x, y)) 'F' else if (hasBoulder (x, y)) 'E' else 'D'
         else if (hasLeftWall (x, y)) 'C' else if (hasBoulder (x, y)) 'B' else 'A'
       )).mkString
   }
@@ -108,8 +107,10 @@ object Puzzle {
     }).mkString
     def under (y: Int) = "+" + (for (x <- 0 until width) yield {(if (hasFloor (x, y)) "-" else " ") + "+"}).mkString
     val grid = outer + "\n" + (for (y <- 0 until height) yield {within (y) + "\n" + under (y) + "\n"}).mkString
-    val solution = createSolver (timeOutFromNow (maxSolveTime))(puzzle).get
-    s"$grid\nlength:${Metrics.length (solution)}, weaving:${Metrics.weaving (puzzle, solution)}\n"
+    createSolver (timeOutFromNow (maxSolveTime))(puzzle) match {
+      case Some (solution) => s"$grid\nlength:${Metrics.length (solution)}, weaving:${Metrics.weaving (puzzle, solution)}\n$solution\n"
+      case None => s"$grid\nNo solution found\n"
+    }
   }
 
   /** Checks whether the given puzzle has a boulder at the given position trapped against a wall, exit or another boulder,

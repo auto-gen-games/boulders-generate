@@ -23,6 +23,7 @@ object Decision {
   def decideOn[State] (decision: Decision[State]): Choice[State] =
     Choice (decision, decision.not)
 
+  /** Choice between the given decision and its opposite, but preferring (trying first) the given decision). */
   def preferredDecision[State] (decision: Decision[State]): Choice[State] =
     Choice.preferential (decision, decision.not)
 
@@ -32,7 +33,12 @@ object Decision {
 
   /** Given two decisions, returns the choice between performing both, or performing either one with the opposite of the other. */
   def or[State] (decisionA: Decision[State], decisionB: Decision[State]): Choice[State] =
-    Choice (and (decisionA, decisionB), and (decisionA.not, decisionB), and (decisionA, decisionB.not))
+    Choice (and (decisionA, decisionB.not), and (decisionA, decisionB), and (decisionA.not, decisionB))
+
+  /** Given two decisions, returns the choice between performing both, or performing either one with the opposite of the other,
+    * but biased towards just the first decision and not the second by the given likelihood. */
+  def firstBiasedOr[State] (bias: Double, decisionA: Decision[State], decisionB: Decision[State]): Choice[State] =
+    Choice.biased (bias, and (decisionA, decisionB.not), and (decisionA, decisionB), and (decisionA.not, decisionB))
 
   /** Given two decisions, returns the choice between performing both, or performing either one with the opposite of the other. */
   def xor[State] (decisionA: Decision[State], decisionB: Decision[State]): Choice[State] =

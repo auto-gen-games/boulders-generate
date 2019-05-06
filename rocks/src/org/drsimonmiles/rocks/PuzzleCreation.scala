@@ -2,8 +2,10 @@ package org.drsimonmiles.rocks
 
 import org.drsimonmiles.agg.PuzzleRefiner.generate
 import org.drsimonmiles.itapprox.{Both, Choice, Decision}
-import org.drsimonmiles.itapprox.Decision.{only, or, preferredDecision}
+import org.drsimonmiles.itapprox.Decision.{only, preferredDecision, firstBiasedOr}
+import org.drsimonmiles.rocks.Configuration.biasAgainstBoulders
 import org.drsimonmiles.rocks.Game.{move, perform}
+import org.drsimonmiles.rocks.Metrics.length
 import org.drsimonmiles.rocks.Puzzle.setBoulders
 import org.drsimonmiles.rocks.Solve.solve
 import org.drsimonmiles.util.{Logger, Measure}
@@ -13,7 +15,7 @@ import scala.util.Random.{nextInt => randomInt}
 
 object PuzzleCreation {
   /** Generate a random puzzle and return it if successful. */
-  def createPuzzle (width: Int, height: Int, hopelessLength: Int, timePerAttempt: Long): Option[Puzzle] = {
+  def createPuzzle (width: Int, height: Int, hopelessLength: Int, timePerAttempt: Long, minLength: Int): Option[(Puzzle, List[Move])] = {
     // Create the initial grid with man, star and exit placed
     val initialPuzzle = createInitialGrid (width, height)
     // The initial choices regard how to ensure the man does not fall and neither man nor star is squashed at the start
@@ -24,10 +26,12 @@ object PuzzleCreation {
     // A buffer for tried states in the puzzle creation exploration
     val buffer = new CreateBuffer ()
     val bufferedImprove: (Puzzle, Option[List[Move]]) => Option[Choice[Puzzle]] = improve (_, _, buffer)
+    val acceptableLength = acceptablyHard (minLength)(_, _)
 
     // Generate a puzzle using puzzle refinement, and perform a final check that the solution is acceptably hard
-    generate (initialPuzzle, initialChoices, hopelessLength, terminate, consequences, bufferedImprove, solver, acceptablyHard, harder).
-      filter (puzzle => createSolver (timeOutFromNow (timePerAttempt))(puzzle).exists (solution => acceptablyHard (puzzle, solution)))
+    generate (initialPuzzle, initialChoices, hopelessLength, terminate, consequences, bufferedImprove, solver, acceptableLength, harder).
+      flatMap (puzzle => createSolver (timeOutFromNow (timePerAttempt))(puzzle).map (solution => (puzzle, solution))).
+      filter (puzzleSolution => acceptableLength (puzzleSolution._1, puzzleSolution._2))
   }
 
   /** Generate the initial grid, with a man, exit and star set. */
@@ -60,14 +64,14 @@ object PuzzleCreation {
     // If the man is at the extreme left or right, only a floor can support him (no boulders can start cornered)
     else if (man.x == 0 || man.x == width - 1) Some (Choice (SetFloor (man.x, man.y, true)))
     // If anywhere else on the grid, then there is a choice of a floor or boulder or both beneath the man
-    else Some (or (SetFloor (man.x, man.y, true), SetBoulder (man.x, man.y + 1, true)))
+    else Some (firstBiasedOr (biasAgainstBoulders, SetFloor (man.x, man.y, true), SetBoulder (man.x, man.y + 1, true)))
 
   /** Create the choice, if any, that needs to be made to ensure the given starting position is not squashed by a boulder. */
   def notSquashedChoice (position: Position): Option[Choice[Puzzle]] =
   // If the man is at the top of the grid, he can't be squashed
     if (position.y == 0) None
     // Else choose between the man having a ceiling or no boulder or both above him
-    else Some (or (SetFloor (position.x, position.y - 1, true), SetBoulder (position.x, position.y - 1, false)))
+    else Some (firstBiasedOr (biasAgainstBoulders, SetFloor (position.x, position.y - 1, true), SetBoulder (position.x, position.y - 1, false)))
 
   /** Return the consequential choices that need to be made following a particular decision */
   def consequences (decision: Decision[Puzzle], puzzle: Puzzle): List[Choice[Puzzle]] = decision match {
@@ -75,7 +79,7 @@ object PuzzleCreation {
     case SetBoulder (x, y, present) if present && !puzzle.hasFloor (x, y) =>
       Logger.log (s"")
       List (only (SetBoulder (x - 1, y, false)), only (SetBoulder (x + 1, y, false)), only (SetLeftWall (x, y, false)),
-        only (SetLeftWall (x + 1, y, false)), or (SetFloor (x, y, true), SetBoulder (x, y + 1, true)))
+        only (SetLeftWall (x + 1, y, false)), firstBiasedOr (biasAgainstBoulders, SetFloor (x, y, true), SetBoulder (x, y + 1, true)))
     // Any decision to make two decisions has combined consequences of both
     case Both (decisionA, decisionB) =>
       consequences (decisionA, puzzle) ::: consequences (decisionB, puzzle)
@@ -200,8 +204,8 @@ object PuzzleCreation {
   /** Determine whether the difficulty of a given puzzle is acceptable, as determined by the number of non-fall
     *  moves in the solution (length) and the number of repeat visits to positions required (non-linearity/weaving)
     * Ignored for now (always true). */
-  def acceptablyHard (puzzle: Puzzle, solution: List[Move]): Boolean =
-    true // length (solution) >= minLength && weaving (puzzle, solution) >= minWeaving
+  def acceptablyHard (minLength: Int)(puzzle: Puzzle, solution: List[Move]): Boolean =
+    length (solution) >= minLength // length (solution) >= minLength && weaving (puzzle, solution) >= minWeaving
 
   /**
     * Determines whether the first given puzzle is harder than the second, according to the number of non-fall moves

@@ -19,8 +19,8 @@ object Create extends App {
   if (args.length > 0 && args(0) == "trial") {
     Configuration.logging = true
     Configuration.measuring = true
-    val puzzle = createPuzzle (startWidth, startHeight, startWidth * startHeight * 10, startWidth * startHeight * 2000l)
-    if (puzzle.isDefined) println (Puzzle.toString (puzzle.get)) else println ("No puzzle found")
+    val puzzle = createPuzzle (startWidth, startHeight, startWidth * startHeight * 10, startWidth * startHeight * 2000l, 0)
+    if (puzzle.isDefined) println (Puzzle.toString (puzzle.get._1)) else println ("No puzzle found")
     Logger.saveLog ()
     println (Measure.toString)
     System.exit (0)
@@ -28,20 +28,28 @@ object Create extends App {
 
   // Keep generating puzzles, using all the cores in parallel
   var height = startHeight
+  var minLengthForHeight = 0
   while (!appTerminated) {
-    for (width <- startWidth until height * 2) {
+    var minLengthForArea = minLengthForHeight
+    minLengthForHeight = minLengthForHeight.max ((for (width <- startWidth to height * 2) yield {
+      println (s"Generating for $width x $height (min length: $minLengthForArea)")
       var created = 0
       val puzzlesFileName = s"puzzles-$width-by-$height.txt"
       val puzzlesFile = new File (new File (puzzlesDirectory), puzzlesFileName)
-      while (created < numberToCreatePerSize)
-        created += (1 to numberOfCores).par.map { _ =>
-          this.synchronized (print ("."))
-          val newPuzzle: Option[Puzzle] = createPuzzle (width, height, width * height * 10, width * height * 2000l)
-          if (newPuzzle.isDefined) this.synchronized (print ("+"))
-          this.synchronized (newPuzzle.foreach (addToFile (puzzlesFile, _)))
-          newPuzzle.size
-        }.sum
-    }
+      var nextMinLength = minLengthForArea
+      while (created < numberToCreatePerSize) {
+          print (".")
+          val newPuzzle = createPuzzle (width, height, width * height * 10, width * height * 5000l, minLengthForArea)
+          if (newPuzzle.isDefined) {
+            this.synchronized (print ("+"))
+            nextMinLength = nextMinLength.max (Metrics.length (newPuzzle.get._2))
+          }
+          newPuzzle.foreach (puzzleSolution => addToFile (puzzlesFile, puzzleSolution._1))
+          created += newPuzzle.size
+        }
+      minLengthForArea = nextMinLength
+      minLengthForArea
+    }).min)
     height += 1
   }
 }

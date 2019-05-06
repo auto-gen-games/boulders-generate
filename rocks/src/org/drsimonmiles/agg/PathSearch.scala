@@ -2,7 +2,6 @@ package org.drsimonmiles.agg
 
 import org.drsimonmiles.util.Measure.measure
 import scala.annotation.tailrec
-import scala.collection.immutable.{HashSet, TreeSet}
 
 object PathSearch {
   /**
@@ -20,6 +19,7 @@ object PathSearch {
     */
   def aStarSearch[Action, State] (start: State)
                                  (terminate: () => Boolean)
+                                 (pathLength: List[Action] => Double)
                                  (distance: State => Double)
                                  (getAvailableActions: State => Iterable[Action])
                                  (perform: (State, Action) => Option[State])
@@ -29,33 +29,39 @@ object PathSearch {
 
     // Cost function calculated as the length of the path traversed plus the distance from the solution
     def cost (state: SolveState) =
-      state._1.length + distance (state._2)
+      pathLength (state._1) + distance (state._2)
+
+    // Orders two states with lowest cost first
+    def compare (stateA: SolveState, stateB: SolveState): Boolean =
+      cost (stateA) < cost (stateB)
+
+    // Returns true if the LHS reaches the same state as the RHS but in equal or less actions
+    def subsumes (existing: (List[Action], State), newState: (List[Action], State)) =
+      existing._2 == newState._2 && pathLength (existing._1) <= pathLength (newState._1)
 
     @tailrec
-    def solve (states: TreeSet[SolveState], tried: Set[State]): Option[Seq[Action]] =
+    def solve (states: Vector[SolveState], tried: Vector[SolveState]): Option[Seq[Action]] =
       if (states.isEmpty) None
       else {
         val state = states.head
-        if (measure ("PS.reachedGoal", reachedGoal (state._2)))
-          Some (state._1.reverse)
-        else if (terminate ())
-          None
+        if (measure ("PS.reachedGoal", reachedGoal (state._2))) Some (state._1.reverse)
+        else if (terminate ()) None
         else {
           //println (s"St: ${state._2}")
           val actions = measure ("PS.getAvailableActions", getAvailableActions (state._2))
           //println ("Ac: " + actions)
           val performed = measure ("PS.performed", actions.flatMap (move => perform (state._2, move).map (result => new SolveState (move :: state._1, result))))
           //println ("Pe: " + performed.mkString ("\n"))
-          val filtered = measure ("PS.filtered", performed.filter (state => !tried.contains (state._2)).toList)
+          val filtered = performed.filter (state => !tried.exists (subsumes (_, state))).toList
           //println ("Fi: " + filtered.mkString ("\n"))
-          val newPaths = measure ("PS.newPaths", states.tail ++ filtered) // (filtered ::: remaining).sortWith ((a, b) => cost (a) < cost (b)))
+          val newPaths = measure ("PS.newPaths", (states.tail ++ filtered).sortWith (compare))
           //println ("NP: " + newPaths)
-          val newTried = measure ("PS.newTried", tried ++ filtered.map (_._2))
+          val newTried = measure ("PS.newTried", tried ++ filtered)
           //println ("NT: " + newTried.mkString ("\n"))
           solve (newPaths, newTried)
         }
     }
 
-    solve (TreeSet (new SolveState (Nil, start))((a, b) => (cost (a) - cost (b)).toInt), HashSet (start))
+    solve (Vector (new SolveState (Nil, start)), Vector ((Nil, start)))
   }
 }
