@@ -14,7 +14,7 @@ object ControlledWander {
     * @param followOn Returns the choices that must be made following the given decision on the given state before it can be complete
     * @param acceptable Returns true if the given state is an acceptable one to explore or should be ignored
     * @param improve Returns a non-compulsory choice on a given complete state that could help improve on that state
-    * @param best Returns which of the pair of states is better
+    * @param best Returns whichever of the pair of states is better
     * @param looksHopeless Returns true if exploring the given path looks unlikely to find good results
     * @return The best complete state found, if any, by timing out or running out of paths to follow
     */
@@ -45,11 +45,9 @@ object ControlledWander {
         val newBest =
           if (state.choices.isEmpty && Measure.measure ("CW.acceptable", acceptable (state.state)))
             bestSoFar.map (best (_, state.state)).orElse (Some (state.state))
-          else
-            bestSoFar
+          else bestSoFar
         // If the time is up, return the best solution found
-        if (terminate ())
-          { /*println (s"Explored $steps states, timed out");*/ newBest }
+        if (terminate ()) newBest
         else
           // If the decision path still looks worth exploring, make some choices, else try other unexplored paths
           if (!looksHopeless (state.prior))
@@ -65,7 +63,7 @@ object ControlledWander {
         else
           wanderFrom (remainder, newBest)
       // If no decision paths are left to try, return the best solution found
-      case Nil => /*println (s"Explored $steps states, no decisions left");*/ bestSoFar
+      case Nil => bestSoFar
     }
 
     wanderFrom (List (Position (initialState, initialChoices, List (initialState))), None)
