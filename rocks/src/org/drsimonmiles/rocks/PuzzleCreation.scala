@@ -1,8 +1,9 @@
 package org.drsimonmiles.rocks
 
+import org.drsimonmiles.agg.CreateBuffer
 import org.drsimonmiles.agg.PuzzleRefiner.generate
 import org.drsimonmiles.itapprox.{Both, Choice, Decision}
-import org.drsimonmiles.itapprox.Decision.{only, preferredDecision, firstBiasedOr}
+import org.drsimonmiles.itapprox.Decision.{firstBiasedOr, only, preferredDecision}
 import org.drsimonmiles.rocks.Configuration.biasAgainstBoulders
 import org.drsimonmiles.rocks.Game.{move, perform}
 import org.drsimonmiles.rocks.Metrics.length
@@ -10,6 +11,7 @@ import org.drsimonmiles.rocks.Puzzle.setBoulders
 import org.drsimonmiles.rocks.Solve.solve
 import org.drsimonmiles.util.{Logger, Measure}
 import org.drsimonmiles.util.TimeOut.timeOutFromNow
+
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random.{nextInt => randomInt}
 
@@ -24,7 +26,7 @@ object PuzzleCreation {
     val terminate = timeOutFromNow (timePerAttempt)
     val solver = createSolver (terminate)
     // A buffer for tried states in the puzzle creation exploration
-    val buffer = new CreateBuffer ()
+    val buffer = new CreateBuffer[Puzzle, Game] (Puzzle.toFullyDefined, puzzle => List (Game (puzzle)))
     val bufferedImprove: (Puzzle, Option[List[Move]]) => Option[Choice[Puzzle]] = improve (_, _, buffer)
     val acceptableLength = acceptablyHard (minLength)(_, _)
 
@@ -194,7 +196,7 @@ object PuzzleCreation {
     }
 
   /** Return a choice that could improve the given puzzle with the given solution (if any) */
-  def improve (puzzle: Puzzle, solution: Option[List[Move]], buffer: CreateBuffer): Option[Choice[Puzzle]] = solution match {
+  def improve (puzzle: Puzzle, solution: Option[List[Move]], buffer: CreateBuffer[Puzzle, Game]): Option[Choice[Puzzle]] = solution match {
     // For a puzzle with a solution, try to make it harder by blocking the path
     case Some (path) => Measure.measure ("couldBlock", couldBlock (Game (puzzle), path).map (preferredDecision))
     // For a puzzle without a solution, try to make it possible by placing an enabling element somewhere reachable

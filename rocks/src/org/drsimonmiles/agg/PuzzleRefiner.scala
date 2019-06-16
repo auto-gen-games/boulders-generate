@@ -36,6 +36,16 @@ object PuzzleRefiner {
       org.drsimonmiles.util.Logger.record (org.drsimonmiles.util.Logger.probe (puzzle, solution (org.drsimonmiles.util.Logger.trace (puzzle))).exists (measure ("PR.acceptable", acceptable (puzzle, _))))
       //solution (puzzle).exists (measure ("PR.acceptable", acceptable (puzzle, _)))
     def improvePuzzle (puzzle: Puzzle) = improve (puzzle, solution (puzzle))
+    /*
+        /** Return a choice that could improve the given puzzle with the given solution (if any) */
+    def improve (puzzle: Puzzle, buffer: CreateBuffer): Option[Choice[Puzzle]] = solution (puzzle) match {
+      // For a puzzle with a solution, try to make it harder by blocking the path
+      case Some (path) => makeHarder (Game (puzzle), path).map (preferredDecision)
+      // For a puzzle without a solution, try to make it possible by placing an enabling element somewhere reachable
+      case None => makeSolveable (buffer.toTryEnableStates (puzzle), buffer.triedEnableStates (puzzle)).map (preferredDecision)
+    }
+
+    */
     val bestPuzzle = betterIfSolveable (solve, better)
     val looksHopeless = hopelessByLength (hopelessLength, solution, better)
 

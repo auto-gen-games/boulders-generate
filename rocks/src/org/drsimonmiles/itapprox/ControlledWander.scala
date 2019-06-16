@@ -25,8 +25,6 @@ object ControlledWander {
                     (improve: State => Option[Choice[State]])
                     (best: (State, State) => State)
                     (looksHopeless: List[State] => Boolean): Option[State] = {
-    var steps = 0
-
     /** Holds a position on a decision path wander, with the current state reached, the choices to be made, and the
       * prior states on the path (ordered from most recent first). */
     case class Position (state: State, choices: List[Choice[State]], prior: List[State])
@@ -39,7 +37,6 @@ object ControlledWander {
     /** Wanders from given unexplored generation states, each with a decision stack, keeping the best found state */
     def wanderFrom (unexplored: List[Position], bestSoFar: Option[State]): Option[State] = unexplored match {
       case state :: remainder =>
-        steps += 1
         // If the new state is acceptable and there are no decisions that need to be made to complete it,
         // test to see whether it's the best found so far, record if so
         val newBest =
