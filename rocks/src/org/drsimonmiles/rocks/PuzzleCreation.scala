@@ -1,9 +1,8 @@
 package org.drsimonmiles.rocks
 
-import org.drsimonmiles.agg.CreateBuffer
 import org.drsimonmiles.agg.PuzzleRefiner.generate
 import org.drsimonmiles.itapprox.{Both, Choice, Decision}
-import org.drsimonmiles.itapprox.Decision.{firstBiasedOr, only, preferredDecision}
+import org.drsimonmiles.itapprox.Decision.{firstBiasedOr, only}
 import org.drsimonmiles.rocks.Configuration.biasAgainstBoulders
 import org.drsimonmiles.rocks.Game.{move, perform}
 import org.drsimonmiles.rocks.Metrics.length
@@ -11,7 +10,6 @@ import org.drsimonmiles.rocks.Puzzle.setBoulders
 import org.drsimonmiles.rocks.Solve.solve
 import org.drsimonmiles.util.{Logger, Measure}
 import org.drsimonmiles.util.TimeOut.timeOutFromNow
-
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random.{nextInt => randomInt}
 
@@ -25,13 +23,11 @@ object PuzzleCreation {
     // Time limit on attempting to generate this puzzle
     val terminate = timeOutFromNow (timePerAttempt)
     val solver = createSolver (terminate)
-    // A buffer for tried states in the puzzle creation exploration
-    val buffer = new CreateBuffer[Puzzle, Game] (Puzzle.toFullyDefined, puzzle => List (Game (puzzle)))
-    val bufferedImprove: (Puzzle, Option[List[Move]]) => Option[Choice[Puzzle]] = improve (_, _, buffer)
     val acceptableLength = acceptablyHard (minLength)(_, _)
 
     // Generate a puzzle using puzzle refinement, and perform a final check that the solution is acceptably hard
-    generate (initialPuzzle, initialChoices, hopelessLength, terminate, consequences, bufferedImprove, solver, acceptableLength, harder).
+    generate (initialPuzzle, initialChoices, hopelessLength, terminate, consequences, solver, acceptableLength, harder,
+      Puzzle.toFullyDefined, Game.apply, makeHarder, couldEnable).
       flatMap (puzzle => createSolver (timeOutFromNow (timePerAttempt))(puzzle).map (solution => (puzzle, solution))).
       filter (puzzleSolution => acceptableLength (puzzleSolution._1, puzzleSolution._2))
   }
@@ -138,6 +134,9 @@ object PuzzleCreation {
     case head :: tail => couldBlockMove (game, head).orElse (couldBlock (move (game, head), tail))
   }
 
+  def makeHarder (puzzle: Puzzle, solution: List[Move]): Option[Decision[Puzzle]] =
+    couldBlock (Game (puzzle), solution)
+
   /** For the given list of moves and the game states they move into, try to find a decision that could add more
     *  options to the man's movement on the grid. */
   def firstEnablerIn (states: List[Move], enact: Move => Option[Game]): Option[Decision[Puzzle]] = states match {
@@ -194,14 +193,6 @@ object PuzzleCreation {
         couldEnable (games, tried)
       }
     }
-
-  /** Return a choice that could improve the given puzzle with the given solution (if any) */
-  def improve (puzzle: Puzzle, solution: Option[List[Move]], buffer: CreateBuffer[Puzzle, Game]): Option[Choice[Puzzle]] = solution match {
-    // For a puzzle with a solution, try to make it harder by blocking the path
-    case Some (path) => Measure.measure ("couldBlock", couldBlock (Game (puzzle), path).map (preferredDecision))
-    // For a puzzle without a solution, try to make it possible by placing an enabling element somewhere reachable
-    case None => Measure.measure ("couldEnable", couldEnable (buffer.toTryEnableStates (puzzle), buffer.triedEnableStates (puzzle)).map (preferredDecision))
-  }
 
   /** Determine whether the difficulty of a given puzzle is acceptable, as determined by the number of non-fall
     *  moves in the solution (length) and the number of repeat visits to positions required (non-linearity/weaving)

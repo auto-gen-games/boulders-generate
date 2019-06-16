@@ -10,19 +10,15 @@ import scala.collection.mutable.ArrayBuffer
   * ensuring equivalent puzzles with different undecided parts aren't treated differently.
   *
   * @param canonical Gets the canonical form of a puzzle.
-  * @param initialStates When a puzzle hasn't been explored before, returns the first states to try.
+  * @param initialState When a puzzle hasn't been explored before, returns the first states to try.
   */
-class CreateBuffer[Puzzle, Game] (canonical: Puzzle => Puzzle, initialStates: Puzzle => TraversableOnce[Game]) {
-  private val toTryEnableStatesBuffer = new GeneratedMap[Puzzle, ArrayBuffer[Game]] (puzzle =>
-    ArrayBuffer[Game] ().++= (initialStates (canonical (puzzle))))
-  //private val toTryEnableStatesBuffer = new GeneratedMap[Puzzle, ArrayBuffer[Game]] (puzzle => ArrayBuffer[Game] (Game (puzzle)))
+class ExploreBuffer[Puzzle, Game] (canonical: Puzzle => Puzzle, initialState: Puzzle => Game) {
+  private val toTryEnableStatesBuffer = new GeneratedMap[Puzzle, ArrayBuffer[Game]] (puzzle => ArrayBuffer[Game] (initialState (puzzle)))
   private val triedEnableStatesBuffer = new GeneratedMap[Puzzle, ArrayBuffer[Game]] (_ => ArrayBuffer[Game] ())
 
   def toTryEnableStates (puzzle: Puzzle): ArrayBuffer[Game] =
-    //toTryEnableStatesBuffer.getOrGenerate (Puzzle.toFullyDefined (puzzle), puzzle)
     toTryEnableStatesBuffer.getOrGenerate (canonical (puzzle), puzzle)
 
   def triedEnableStates (puzzle: Puzzle): ArrayBuffer[Game] =
-    //triedEnableStatesBuffer.getOrGenerate (Puzzle.toFullyDefined (puzzle), puzzle)
     triedEnableStatesBuffer.getOrGenerate (canonical (puzzle), puzzle)
 }
