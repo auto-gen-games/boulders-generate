@@ -14,11 +14,17 @@ object Metrics extends App {
       }
     }*/
 
+  /** Returns the set of possible game states found by breadth-first search until the solution is reached. */
   def breadth (puzzle: Puzzle): Int = {
     @tailrec
     def breadth (games: List[Game], tried: List[Game]): Int = games match {
       case Nil => tried.length
-      case game :: rest => breadth (getAvailableMoves (game).map (move (game, _)).filterNot (tried.contains).toList ::: rest, game :: tried)
+      case game :: rest =>
+        if (games.head.hasWon)
+          tried.length
+        else
+          breadth (rest ::: getAvailableMoves (game).map (move (game, _)).filterNot (tried.contains).toList,
+          game :: tried)
     }
 
     breadth (List (Game (puzzle)), Nil)

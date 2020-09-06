@@ -14,7 +14,7 @@ final case class Game (puzzle: Puzzle, x: Int, y: Int, boulders: Set[(Int, Int)]
   val height: Int = puzzle.height
   val star: Option[Position] = if (starRemains) Some (puzzle.star) else None
   val width: Int = puzzle.width
-  override def toString = s"($x,$y)" + (if (starRemains) "*" else "") + " / " + boulders.map (b => s"(${b._1},${b._2})").mkString (" ")
+  override lazy val toString = s"($x,$y)" + (if (starRemains) "*" else "") + " / " + boulders.map (b => s"(${b._1},${b._2})").mkString (" ")
 }
 
 object Game {

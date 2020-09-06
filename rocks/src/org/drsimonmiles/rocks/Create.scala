@@ -1,14 +1,20 @@
 package org.drsimonmiles.rocks
 
 import java.io.File
-
 import org.drsimonmiles.rocks.Configuration._
 import org.drsimonmiles.rocks.IO.addToFile
 import org.drsimonmiles.rocks.PuzzleCreation.createPuzzle
 import org.drsimonmiles.util.{Logger, Measure}
 
+/** Main application for creating puzzles */
 object Create extends App {
   println ("Running")
+
+  if (args.length > 0 && args(0) == "sort") {
+    if (args.length > 2)
+      SortByDifficulty.sort (args (1), args (2))
+    System.exit (0)
+  }
 
   if (args.length > 0 && args(0) == "show") {
     val puzzlesFile = new File (args (1))
