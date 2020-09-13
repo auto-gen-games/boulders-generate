@@ -1,7 +1,7 @@
 package org.drsimonmiles.rocks
 
 import org.drsimonmiles.rocks.IO.{addToFile, load}
-import org.drsimonmiles.rocks.Metrics.breadth
+import org.drsimonmiles.rocks.Metrics.{breadth, weaving}
 import java.io.File
 
 object SortByDifficulty extends App {
@@ -16,4 +16,12 @@ object SortByDifficulty extends App {
 
     sorted.foreach (level => addToFile (output, level))
   }
+
+  def rate (levelsFile: String) = {
+    val input = new File (levelsFile)
+    val levels = load (input)
+    val rated = levels.map (level => (level, breadth (level)))
+    rated.map (_._2).foreach (println)
+  }
+
 }

@@ -1,6 +1,5 @@
 package org.drsimonmiles.rocks
 
-import org.drsimonmiles.rocks.Configuration.maxSolveTime
 import org.drsimonmiles.rocks.PuzzleCreation.createSolver
 import org.drsimonmiles.util.Matrix.updated
 import org.drsimonmiles.util.TimeOut.timeOutFromNow
@@ -99,7 +98,7 @@ object Puzzle {
       )).mkString
   }
 
-  def toString (puzzle: Puzzle): String = {
+  def toString (puzzle: Puzzle)(implicit config: Configuration): String = {
     import puzzle._
     val outer = "+" + (for (_ <- 0 until width) yield "-+").mkString
     def within (y: Int) = "|" + (for (x <- 0 until width) yield {
@@ -107,7 +106,7 @@ object Puzzle {
     }).mkString
     def under (y: Int) = "+" + (for (x <- 0 until width) yield {(if (hasFloor (x, y)) "-" else " ") + "+"}).mkString
     val grid = outer + "\n" + (for (y <- 0 until height) yield {within (y) + "\n" + under (y) + "\n"}).mkString
-    createSolver (timeOutFromNow (maxSolveTime))(puzzle) match {
+    createSolver (timeOutFromNow (config.maxSolveTime))(puzzle) match {
       case Some (solution) => s"$grid\nlength:${Metrics.length (solution)}, weaving:${Metrics.weaving (puzzle, solution)}\n$solution\n"
       case None => s"$grid\nNo solution found\n"
     }

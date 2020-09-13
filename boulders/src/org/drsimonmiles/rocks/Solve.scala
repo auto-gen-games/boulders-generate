@@ -22,4 +22,10 @@ object Solve {
   /** Solve the given game state, with a timeout function given */
   def solve (game: Game)(terminate: () => Boolean): Option[List[Move]] =
     aStarSearch [Move, Game](game)(terminate)(pathLength)(distance)(getAvailableMoves)(act)(_.hasWon).map (_.toList)
+
+  def toString (solution: Option[List[Move]]): String =
+    solution match {
+      case None => "No solution found"
+      case Some (moves) => moves.map (Move.toString).mkString
+    }
 }

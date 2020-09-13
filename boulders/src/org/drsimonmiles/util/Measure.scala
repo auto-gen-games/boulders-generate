@@ -8,7 +8,7 @@ object Measure {
   // Each block is measured by minimum time spent, maximum time spent, total time spent, number of calls to block
   private val times = scala.collection.mutable.Map[String, (Long, Long, Long, Long)] ()
 
-  def measure[T] (name: String, f: => T) = if (Configuration.measuring) {
+  def measure[T] (name: String, f: => T)(implicit config: Configuration) = if (config.measuring) {
     val start = currentTimeMillis
     val result = f
     val time = currentTimeMillis - start

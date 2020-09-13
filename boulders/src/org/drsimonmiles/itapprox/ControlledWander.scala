@@ -1,5 +1,6 @@
 package org.drsimonmiles.itapprox
 
+import org.drsimonmiles.rocks.Configuration
 import org.drsimonmiles.util.Measure
 
 object ControlledWander {
@@ -24,13 +25,14 @@ object ControlledWander {
                     (acceptable: State => Boolean)
                     (improve: State => Option[Choice[State]])
                     (best: (State, State) => State)
-                    (looksHopeless: List[State] => Boolean): Option[State] = {
+                    (looksHopeless: List[State] => Boolean)
+                    (implicit config: Configuration): Option[State] = {
     /** Holds a position on a decision path wander, with the current state reached, the choices to be made, and the
       * prior states on the path (ordered from most recent first). */
     case class Position (state: State, choices: List[Choice[State]], prior: List[State])
 
     /** Returns the states reached by enacting each decision in a choice, where that is a valid setting, randomly ordered */
-    def nextSteps (choice: Choice[State], oldState: Position, otherChoices: List[Choice[State]]): List[Position] =
+    def nextSteps (choice: Choice[State], oldState: Position, otherChoices: List[Choice[State]])(implicit config: Configuration): List[Position] =
       for (decision <- choice.shuffled; result <- decision.enact (oldState.state); consequences = org.drsimonmiles.util.Logger.log (followOn (decision, result))) yield
         Position (result, consequences ::: otherChoices, result :: oldState.prior)
 

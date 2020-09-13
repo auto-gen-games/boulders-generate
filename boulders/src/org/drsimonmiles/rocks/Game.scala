@@ -30,24 +30,24 @@ object Game {
       hasExit (fx, fy) || hasStar (fx, fy) || (!hasFloor (fx, fy) && squashes (fx, fy + 1))
     // Checks whether, if the move pushed a boulder, that boulder is not blocked from moving nor would squash star or exit
     def canPush = move match {
-      case Left => !hasLeftWall (x - 1, y) && !hasBoulder (x - 2, y) && !squashes (x - 2, y)
-      case Right => !hasLeftWall (x + 2, y) && !hasBoulder (x + 2, y) && !squashes (x + 2, y)
+      case WalkLeft => !hasLeftWall (x - 1, y) && !hasBoulder (x - 2, y) && !squashes (x - 2, y)
+      case WalkRight => !hasLeftWall (x + 2, y) && !hasBoulder (x + 2, y) && !squashes (x + 2, y)
       case JumpLeft => !hasLeftWall (x - 1, y - 1) && !hasBoulder (x - 2, y - 1) && !squashes (x - 2, y - 1)
       case JumpRight => !hasLeftWall (x + 2, y - 1) && !hasBoulder (x + 2, y - 1) && !squashes (x + 2, y - 1)
       case _ => false
     }
     // Checks whether the move would cause a boulder to squash the man
     def wouldntBeSquashed = move match {
-      case Left => !hasBoulder (x - 1, y - 1) || hasFloor (x - 1, y - 1)
-      case Right => !hasBoulder (x + 1, y - 1) || hasFloor (x + 1, y - 1)
+      case WalkLeft => !hasBoulder (x - 1, y - 1) || hasFloor (x - 1, y - 1)
+      case WalkRight => !hasBoulder (x + 1, y - 1) || hasFloor (x + 1, y - 1)
       case JumpLeft => !hasBoulder (x - 1, y - 2) || hasFloor (x - 1, y - 2)
       case JumpRight => !hasBoulder (x + 1, y - 2) || hasFloor (x + 1, y - 2)
       case _ => true
     }
     // Check whether a wall or non-pushable boulder blocks the move
     def unblocked = move match {
-      case Left => !hasLeftWall (x, y) && (!hasBoulder (x - 1, y) || canPush)
-      case Right => !hasLeftWall (x + 1, y) && (!hasBoulder (x + 1, y) || canPush)
+      case WalkLeft => !hasLeftWall (x, y) && (!hasBoulder (x - 1, y) || canPush)
+      case WalkRight => !hasLeftWall (x + 1, y) && (!hasBoulder (x + 1, y) || canPush)
       case JumpLeft => !hasFloor (x, y - 1) && !hasLeftWall (x, y - 1) && (!hasBoulder (x - 1, y - 1) || canPush)
       case JumpRight => !hasFloor (x, y - 1) && !hasLeftWall (x + 1, y - 1) && (!hasBoulder (x + 1, y - 1) || canPush)
       case Jump => !hasFloor (x, y - 1)
@@ -98,8 +98,8 @@ object Game {
     else
       // If we can move, first move any boulder pushed then move the man, or if no boulder then check whether the star is collected
       move match {
-        case Left => if (hasBoulder (x - 1, y)) perform (push (x - 1, y, direction = -1), Left) else Some (after (game, x - 1, y))
-        case Right => if (hasBoulder (x + 1, y)) perform (push (x + 1, y, direction = 1), Right) else Some (after (game, x + 1, y))
+        case WalkLeft => if (hasBoulder (x - 1, y)) perform (push (x - 1, y, direction = -1), WalkLeft) else Some (after (game, x - 1, y))
+        case WalkRight => if (hasBoulder (x + 1, y)) perform (push (x + 1, y, direction = 1), WalkRight) else Some (after (game, x + 1, y))
         case Jump => Some (after (game, x, y - 1))
         case Fall => Some (after (game, x, y + 1))
         case JumpLeft => if (hasBoulder (x - 1, y - 1)) perform (push (x - 1, y - 1, direction = -1), JumpLeft) else Some (after (after (game, x, y - 1), x - 1, y - 1))

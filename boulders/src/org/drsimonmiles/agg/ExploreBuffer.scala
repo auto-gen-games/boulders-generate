@@ -1,6 +1,8 @@
 package org.drsimonmiles.agg
 
+import org.drsimonmiles.rocks.Configuration
 import org.drsimonmiles.util.GeneratedMap
+
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -16,9 +18,9 @@ class ExploreBuffer[Puzzle, Game] (canonical: Puzzle => Puzzle, initialState: Pu
   private val toTryEnableStatesBuffer = new GeneratedMap[Puzzle, ArrayBuffer[Game]] (puzzle => ArrayBuffer[Game] (initialState (puzzle)))
   private val triedEnableStatesBuffer = new GeneratedMap[Puzzle, ArrayBuffer[Game]] (_ => ArrayBuffer[Game] ())
 
-  def toTryEnableStates (puzzle: Puzzle): ArrayBuffer[Game] =
+  def toTryEnableStates (puzzle: Puzzle)(implicit config: Configuration): ArrayBuffer[Game] =
     toTryEnableStatesBuffer.getOrGenerate (canonical (puzzle), puzzle)
 
-  def triedEnableStates (puzzle: Puzzle): ArrayBuffer[Game] =
+  def triedEnableStates (puzzle: Puzzle)(implicit config: Configuration): ArrayBuffer[Game] =
     triedEnableStatesBuffer.getOrGenerate (canonical (puzzle), puzzle)
 }

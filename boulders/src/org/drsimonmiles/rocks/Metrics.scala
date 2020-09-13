@@ -14,17 +14,24 @@ object Metrics extends App {
       }
     }*/
 
-  /** Returns the set of possible game states found by breadth-first search until the solution is reached. */
+  /** Returns the set of possible game states found by breadth-first search until the solution is reached.
+    * Game states are counted by the variety of different vertical positions of boulders.
+    * The intuition for this is that the player moving or the player pushing a boulder along sideways may be
+    * a recoverable change whereas pushing a boulder to fall is not. */
   def breadth (puzzle: Puzzle): Int = {
     @tailrec
     def breadth (games: List[Game], tried: List[Game]): Int = games match {
       case Nil => tried.length
       case game :: rest =>
         if (games.head.hasWon)
-          tried.length
-        else
-          breadth (rest ::: getAvailableMoves (game).map (move (game, _)).filterNot (tried.contains).toList,
-          game :: tried)
+          tried.map (_.boulders.toVector.map (_._2)).toSet.size
+        else {
+          // Get the next available states and try those for which no pushing was involved before others on the list.
+          // This is because they are likely to be equivalent states to the starting state, i.e. can move back again.
+          val moved = getAvailableMoves (game).map (move (game, _)).filterNot (tried.contains).toList
+            .partition (_.boulders == game.boulders)
+          breadth (moved._1 ::: rest ::: moved._2, game :: tried)
+        }
     }
 
     breadth (List (Game (puzzle)), Nil)

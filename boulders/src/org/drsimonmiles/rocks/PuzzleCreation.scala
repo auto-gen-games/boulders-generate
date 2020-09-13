@@ -3,7 +3,6 @@ package org.drsimonmiles.rocks
 import org.drsimonmiles.agg.PuzzleRefiner.generate
 import org.drsimonmiles.itapprox.{Both, Choice, Decision}
 import org.drsimonmiles.itapprox.Decision.{firstBiasedOr, only}
-import org.drsimonmiles.rocks.Configuration.biasAgainstBoulders
 import org.drsimonmiles.rocks.Game.{move, perform}
 import org.drsimonmiles.rocks.Metrics.length
 import org.drsimonmiles.rocks.Puzzle.setBoulders
@@ -15,7 +14,7 @@ import scala.util.Random.{nextInt => randomInt}
 
 object PuzzleCreation {
   /** Generate a random puzzle and return it if successful. */
-  def createPuzzle (width: Int, height: Int, hopelessLength: Int, timePerAttempt: Long, minLength: Int): Option[(Puzzle, List[Move])] = {
+  def createPuzzle (width: Int, height: Int, hopelessLength: Int, timePerAttempt: Long, minLength: Int)(implicit config: Configuration): Option[(Puzzle, List[Move])] = {
     // Create the initial grid with man, star and exit placed
     val initialPuzzle = createInitialGrid (width, height)
     // The initial choices regard how to ensure the man does not fall and neither man nor star is squashed at the start
@@ -56,28 +55,28 @@ object PuzzleCreation {
   }
 
   /** Create the choice, if any, that needs to be made on how the given man start position should be supported. */
-  def supportChoice (man: Position, width: Int, height: Int): Option[Choice[Puzzle]] =
+  def supportChoice (man: Position, width: Int, height: Int)(implicit config: Configuration): Option[Choice[Puzzle]] =
   // If the man is on the lowest level, there are no choices required to be made
     if (man.y == height - 1) None
     // If the man is at the extreme left or right, only a floor can support him (no boulders can start cornered)
     else if (man.x == 0 || man.x == width - 1) Some (Choice (SetFloor (man.x, man.y, true)))
     // If anywhere else on the grid, then there is a choice of a floor or boulder or both beneath the man
-    else Some (firstBiasedOr (biasAgainstBoulders, SetFloor (man.x, man.y, true), SetBoulder (man.x, man.y + 1, true)))
+    else Some (firstBiasedOr (config.biasAgainstBoulders, SetFloor (man.x, man.y, true), SetBoulder (man.x, man.y + 1, true)))
 
   /** Create the choice, if any, that needs to be made to ensure the given starting position is not squashed by a boulder. */
-  def notSquashedChoice (position: Position): Option[Choice[Puzzle]] =
+  def notSquashedChoice (position: Position)(implicit config: Configuration): Option[Choice[Puzzle]] =
   // If the man is at the top of the grid, he can't be squashed
     if (position.y == 0) None
     // Else choose between the man having a ceiling or no boulder or both above him
-    else Some (firstBiasedOr (biasAgainstBoulders, SetFloor (position.x, position.y - 1, true), SetBoulder (position.x, position.y - 1, false)))
+    else Some (firstBiasedOr (config.biasAgainstBoulders, SetFloor (position.x, position.y - 1, true), SetBoulder (position.x, position.y - 1, false)))
 
   /** Return the consequential choices that need to be made following a particular decision */
-  def consequences (decision: Decision[Puzzle], puzzle: Puzzle): List[Choice[Puzzle]] = decision match {
+  def consequences (decision: Decision[Puzzle], puzzle: Puzzle)(implicit config: Configuration): List[Choice[Puzzle]] = decision match {
     // The consequences of placing a boulder are that we need to decide what is under that boulder: floor, boulder or both
     case SetBoulder (x, y, present) if present && !puzzle.hasFloor (x, y) =>
       Logger.log (s"")
       List (only (SetBoulder (x - 1, y, false)), only (SetBoulder (x + 1, y, false)), only (SetLeftWall (x, y, false)),
-        only (SetLeftWall (x + 1, y, false)), firstBiasedOr (biasAgainstBoulders, SetFloor (x, y, true), SetBoulder (x, y + 1, true)))
+        only (SetLeftWall (x + 1, y, false)), firstBiasedOr (config.biasAgainstBoulders, SetFloor (x, y, true), SetBoulder (x, y + 1, true)))
     // Any decision to make two decisions has combined consequences of both
     case Both (decisionA, decisionB) =>
       consequences (decisionA, puzzle) ::: consequences (decisionB, puzzle)
@@ -111,10 +110,10 @@ object PuzzleCreation {
   def couldBlockMove (game: Game, nextMove: Move): Option[Decision[Puzzle]] = {
     import game._
     firstUndecided (puzzle, nextMove match {
-      case Left =>
+      case WalkLeft =>
         if (hasBoulder (x - 1, y)) List (SetLeftWall (x, y, true), SetLeftWall (x - 1, y, true))
         else List (SetLeftWall (x, y, true), SetBoulder (x - 1, y, true))
-      case Right =>
+      case WalkRight =>
         if (hasBoulder (x + 1, y)) List (SetLeftWall (x + 1, y, true), SetLeftWall (x + 2, y, true))
         else List (SetLeftWall (x + 1, y, true), SetBoulder (x + 1, y, true))
       case Jump => List (SetFloor (x, y - 1, true))
@@ -149,21 +148,21 @@ object PuzzleCreation {
         // If falling, then try putting a floor to prevent the fall (if not already decided no floor)
         case (Fall, Some (g)) if !g.puzzle.knowFloor (g.x, g.y - 1) => Some (SetFloor (g.x, g.y - 1, true))
         // If moving left or right, then try putting a boulder to push (if not already decided no boulder)
-        case (Left, Some (g)) if !g.puzzle.knowBoulder (g.x, g.y) => Some (SetBoulder (g.x, g.y, true))
-        case (Right, Some (g)) if !g.puzzle.knowBoulder (g.x, g.y) => Some (SetBoulder (g.x, g.y, true))
+        case (WalkLeft, Some (g)) if !g.puzzle.knowBoulder (g.x, g.y) => Some (SetBoulder (g.x, g.y, true))
+        case (WalkRight, Some (g)) if !g.puzzle.knowBoulder (g.x, g.y) => Some (SetBoulder (g.x, g.y, true))
         // Otherwise, see if there is an enabler for the next move
         case _ => firstEnablerIn (others, enact)
       }
   }
 
   // Order of actions to try if the man is above and left of the star/exit
-  val aboveLeftActions = List (Fall, Right, JumpRight, Left, JumpLeft)
+  val aboveLeftActions = List (Fall, WalkRight, JumpRight, WalkLeft, JumpLeft)
   // Order of actions to try if the man is above and right of the star/exit
-  val aboveRightActions = List (Fall, Left, JumpLeft, Right, JumpRight)
+  val aboveRightActions = List (Fall, WalkLeft, JumpLeft, WalkRight, JumpRight)
   // Order of actions to try if the man is below and left of the star/exit
-  val belowLeftActions = List (Fall, JumpRight, JumpLeft, Right, Left)
+  val belowLeftActions = List (Fall, JumpRight, JumpLeft, WalkRight, WalkLeft)
   // Order of actions to try if the man is below and right of the star/exit
-  val belowRightActions = List (Fall, JumpLeft, JumpRight, Left, Right)
+  val belowRightActions = List (Fall, JumpLeft, JumpRight, WalkLeft, WalkRight)
 
   /** In the given game state, what order of actions would make sense to try given the relative position of the man, star and exit. */
   def orderedActions (game: Game): List[Move] = {
@@ -176,7 +175,7 @@ object PuzzleCreation {
 
   /** Tries to find a decision that may possibly make an unsolveable puzzle solveable, by seeing what supportive
     *  floors or boulders could help in paths reachable from the given game states, excluding those already tried. */
-  def couldEnable (games: ArrayBuffer[Game], tried: ArrayBuffer[Game]): Option[Decision[Puzzle]] =
+  def couldEnable (games: ArrayBuffer[Game], tried: ArrayBuffer[Game])(implicit config: Configuration): Option[Decision[Puzzle]] =
     if (games.isEmpty) None
     else {
       val game = games.head

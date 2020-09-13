@@ -1,7 +1,6 @@
 package org.drsimonmiles.util
 
 import java.io.{File, FileWriter, PrintWriter}
-
 import org.drsimonmiles.rocks.{Configuration, Metrics, Move, Puzzle}
 
 object Logger {
@@ -9,25 +8,25 @@ object Logger {
 
   def show[A] (value: A): A = { println (value); value }
 
-  def log[A] (value: A): A = {
-    if (Configuration.logging) toLog = s"${value.toString}\n" +: toLog
+  def log[A] (value: A)(implicit config: Configuration): A = {
+    if (config.logging) toLog = s"${value.toString}\n" +: toLog
     value
   }
 
-  def saveLog (): Unit = if (Configuration.logging) {
+  def saveLog ()(implicit config: Configuration): Unit = if (config.logging) {
     val logFile = new File ("trace.txt")
     val out = new PrintWriter (new FileWriter (logFile))
     toLog.reverse.foreach (out.println)
     out.close ()
   }
 
-  def trace[P] (puzzle: P): P = {
-    if (Configuration.logging) toLog = (toDetail (puzzle.asInstanceOf[Puzzle]) + "\n") +: toLog
+  def trace[P] (puzzle: P)(implicit config: Configuration): P = {
+    if (config.logging) toLog = (toDetail (puzzle.asInstanceOf[Puzzle]) + "\n") +: toLog
     puzzle
   }
 
-  def probe[P, A] (puzzle: P, solution: Option[A]): Option[A] = {
-    if (Configuration.logging)
+  def probe[P, A] (puzzle: P, solution: Option[A])(implicit config: Configuration): Option[A] = {
+    if (config.logging)
       if (solution.isDefined) {
         val length = Metrics.length (solution.get.asInstanceOf[List[Move]])
         val weaving = Metrics.weaving (puzzle.asInstanceOf[Puzzle], solution.get.asInstanceOf[List[Move]])
@@ -36,8 +35,8 @@ object Logger {
     solution
   }
 
-  def record (accepted: Boolean): Boolean = {
-    if (Configuration.logging) toLog = s"Accepted? $accepted\n" +: toLog
+  def record (accepted: Boolean)(implicit config: Configuration): Boolean = {
+    if (config.logging) toLog = s"Accepted? $accepted\n" +: toLog
     accepted
   }
 
