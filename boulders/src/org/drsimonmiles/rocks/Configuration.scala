@@ -4,15 +4,15 @@ import io.circe._
 import io.circe.parser._
 import scala.io.Source
 
-abstract class Command {
+trait Command {
   val measuring: Boolean
   val logging: Boolean
 }
-abstract class SolvingCommand extends Command {
-  val maxSolveTime: Long
-}
 case class Configuration (commands: Vector[Command])
 
+trait SolvingCommand extends Command {
+  val maxSolveTime: Long
+}
 case class CreateCommand (
   // The width of the puzzles created
   width: Int,
@@ -118,6 +118,10 @@ object Configuration {
     cursor.get[String]("command") match {
       case Left (error) => Left (error)
       case Right ("create") => loadCreate (cursor, defaults)
+      case Right ("solve") => loadSolve (cursor, defaults)
+      case Right ("show") => loadShow (cursor, defaults)
+      case Right ("rate") => loadRate (cursor, defaults)
+      case Right ("sort") => loadSort (cursor, defaults)
       case Right (x) => Left (DecodingFailure (s"Unrecognised command $x", List.empty))
     }
   }
@@ -134,6 +138,52 @@ object Configuration {
       biasAgainstBoulders = cursor.get[Double]("biasAgainstBoulders").getOrElse (defaults.biasAgainstBoulders),
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
       maxSolveTime = cursor.get[Long]("maxSolveTime").getOrElse (defaults.maxSolveTime),
+      measuring = cursor.get[Boolean]("measuring").getOrElse (defaults.measuring),
+      logging = cursor.get[Boolean]("logging").getOrElse (defaults.logging))
+
+  def loadSolve (cursor: ACursor, defaults: Defaults): Either[DecodingFailure, SolveCommand] =
+    for {
+      input <- cursor.get[String]("inputFile")
+      output <- cursor.get[String]("outputFile")
+    } yield SolveCommand (
+      puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
+      inputFile = input,
+      outputFile = output,
+      maxSolveTime = cursor.get[Long]("maxSolveTime").getOrElse (defaults.maxSolveTime),
+      measuring = cursor.get[Boolean]("measuring").getOrElse (defaults.measuring),
+      logging = cursor.get[Boolean]("logging").getOrElse (defaults.logging))
+
+  def loadShow (cursor: ACursor, defaults: Defaults): Either[DecodingFailure, ShowCommand] =
+    for {
+      input <- cursor.get[String]("inputFile")
+      output <- cursor.get[String]("outputFile")
+    } yield ShowCommand (
+      puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
+      inputFile = input,
+      outputFile = output,
+      maxSolveTime = cursor.get[Long]("maxSolveTime").getOrElse (defaults.maxSolveTime),
+      measuring = cursor.get[Boolean]("measuring").getOrElse (defaults.measuring),
+      logging = cursor.get[Boolean]("logging").getOrElse (defaults.logging))
+
+  def loadRate (cursor: ACursor, defaults: Defaults): Either[DecodingFailure, RateCommand] =
+    for {
+      input <- cursor.get[String]("inputFile")
+      output <- cursor.get[String]("outputFile")
+    } yield RateCommand (
+      puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
+      inputFile = input,
+      outputFile = output,
+      measuring = cursor.get[Boolean]("measuring").getOrElse (defaults.measuring),
+      logging = cursor.get[Boolean]("logging").getOrElse (defaults.logging))
+
+  def loadSort (cursor: ACursor, defaults: Defaults): Either[DecodingFailure, SortCommand] =
+    for {
+      input <- cursor.get[String]("inputFile")
+      output <- cursor.get[String]("outputFile")
+    } yield SortCommand (
+      puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
+      inputFile = input,
+      outputFile = output,
       measuring = cursor.get[Boolean]("measuring").getOrElse (defaults.measuring),
       logging = cursor.get[Boolean]("logging").getOrElse (defaults.logging))
 }
