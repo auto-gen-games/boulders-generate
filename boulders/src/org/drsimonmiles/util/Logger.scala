@@ -1,31 +1,31 @@
 package org.drsimonmiles.util
 
 import java.io.{File, FileWriter, PrintWriter}
-import org.drsimonmiles.rocks.{Configuration, Metrics, Move, Puzzle}
+import org.drsimonmiles.rocks.{Command, Metrics, Move, Puzzle}
 
 object Logger {
   private var toLog = Vector[String] ()
 
   def show[A] (value: A): A = { println (value); value }
 
-  def log[A] (value: A)(implicit config: Configuration): A = {
+  def log[A] (value: A)(implicit config: Command): A = {
     if (config.logging) toLog = s"${value.toString}\n" +: toLog
     value
   }
 
-  def saveLog ()(implicit config: Configuration): Unit = if (config.logging) {
+  def saveLog ()(implicit config: Command): Unit = if (config.logging) {
     val logFile = new File ("trace.txt")
     val out = new PrintWriter (new FileWriter (logFile))
     toLog.reverse.foreach (out.println)
     out.close ()
   }
 
-  def trace[P] (puzzle: P)(implicit config: Configuration): P = {
+  def trace[P] (puzzle: P)(implicit config: Command): P = {
     if (config.logging) toLog = (toDetail (puzzle.asInstanceOf[Puzzle]) + "\n") +: toLog
     puzzle
   }
 
-  def probe[P, A] (puzzle: P, solution: Option[A])(implicit config: Configuration): Option[A] = {
+  def probe[P, A] (puzzle: P, solution: Option[A])(implicit config: Command): Option[A] = {
     if (config.logging)
       if (solution.isDefined) {
         val length = Metrics.length (solution.get.asInstanceOf[List[Move]])
@@ -35,7 +35,7 @@ object Logger {
     solution
   }
 
-  def record (accepted: Boolean)(implicit config: Configuration): Boolean = {
+  def record (accepted: Boolean)(implicit config: Command): Boolean = {
     if (config.logging) toLog = s"Accepted? $accepted\n" +: toLog
     accepted
   }

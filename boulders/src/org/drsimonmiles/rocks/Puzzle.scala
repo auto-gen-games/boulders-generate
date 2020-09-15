@@ -98,7 +98,7 @@ object Puzzle {
       )).mkString
   }
 
-  def toString (puzzle: Puzzle)(implicit config: Configuration): String = {
+  def toString (puzzle: Puzzle)(implicit config: SolvingCommand): String = {
     import puzzle._
     val outer = "+" + (for (_ <- 0 until width) yield "-+").mkString
     def within (y: Int) = "|" + (for (x <- 0 until width) yield {

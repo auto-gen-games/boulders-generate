@@ -1,11 +1,17 @@
 {
-  "command" : "create",
-  "startWidth" : 7,
-  "startHeight" : 7,
-  "numberToCreatePerSize" : 6,
-  "biasAgainstBoulders" : 0.5,
-  "puzzlesDirectory" : "puzzles",
-  "maxSolveTime" : 10000,
-  "measuring" : false,
-  "logging" : false
+  "defaults" : {
+    "biasAgainstBoulders" : 0.5,
+    "puzzlesDirectory" : "puzzles",
+    "maxSolveTime" : 10000,
+    "measuring" : false,
+    "logging" : false
+  },
+  "commands" : [
+    {
+      "command" : "create",
+      "width" : 5,
+      "height" : 5,
+      "number" : 5
+    }
+  ]
 }

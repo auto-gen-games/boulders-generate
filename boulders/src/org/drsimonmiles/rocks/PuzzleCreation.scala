@@ -14,7 +14,7 @@ import scala.util.Random.{nextInt => randomInt}
 
 object PuzzleCreation {
   /** Generate a random puzzle and return it if successful. */
-  def createPuzzle (width: Int, height: Int, hopelessLength: Int, timePerAttempt: Long, minLength: Int)(implicit config: Configuration): Option[(Puzzle, List[Move])] = {
+  def createPuzzle (width: Int, height: Int, hopelessLength: Int, timePerAttempt: Long, minLength: Int)(implicit config: CreateCommand): Option[(Puzzle, List[Move])] = {
     // Create the initial grid with man, star and exit placed
     val initialPuzzle = createInitialGrid (width, height)
     // The initial choices regard how to ensure the man does not fall and neither man nor star is squashed at the start
@@ -55,7 +55,7 @@ object PuzzleCreation {
   }
 
   /** Create the choice, if any, that needs to be made on how the given man start position should be supported. */
-  def supportChoice (man: Position, width: Int, height: Int)(implicit config: Configuration): Option[Choice[Puzzle]] =
+  def supportChoice (man: Position, width: Int, height: Int)(implicit config: CreateCommand): Option[Choice[Puzzle]] =
   // If the man is on the lowest level, there are no choices required to be made
     if (man.y == height - 1) None
     // If the man is at the extreme left or right, only a floor can support him (no boulders can start cornered)
@@ -64,14 +64,14 @@ object PuzzleCreation {
     else Some (firstBiasedOr (config.biasAgainstBoulders, SetFloor (man.x, man.y, true), SetBoulder (man.x, man.y + 1, true)))
 
   /** Create the choice, if any, that needs to be made to ensure the given starting position is not squashed by a boulder. */
-  def notSquashedChoice (position: Position)(implicit config: Configuration): Option[Choice[Puzzle]] =
+  def notSquashedChoice (position: Position)(implicit config: CreateCommand): Option[Choice[Puzzle]] =
   // If the man is at the top of the grid, he can't be squashed
     if (position.y == 0) None
     // Else choose between the man having a ceiling or no boulder or both above him
     else Some (firstBiasedOr (config.biasAgainstBoulders, SetFloor (position.x, position.y - 1, true), SetBoulder (position.x, position.y - 1, false)))
 
   /** Return the consequential choices that need to be made following a particular decision */
-  def consequences (decision: Decision[Puzzle], puzzle: Puzzle)(implicit config: Configuration): List[Choice[Puzzle]] = decision match {
+  def consequences (decision: Decision[Puzzle], puzzle: Puzzle)(implicit config: CreateCommand): List[Choice[Puzzle]] = decision match {
     // The consequences of placing a boulder are that we need to decide what is under that boulder: floor, boulder or both
     case SetBoulder (x, y, present) if present && !puzzle.hasFloor (x, y) =>
       Logger.log (s"")
@@ -175,7 +175,7 @@ object PuzzleCreation {
 
   /** Tries to find a decision that may possibly make an unsolveable puzzle solveable, by seeing what supportive
     *  floors or boulders could help in paths reachable from the given game states, excluding those already tried. */
-  def couldEnable (games: ArrayBuffer[Game], tried: ArrayBuffer[Game])(implicit config: Configuration): Option[Decision[Puzzle]] =
+  def couldEnable (games: ArrayBuffer[Game], tried: ArrayBuffer[Game])(implicit config: CreateCommand): Option[Decision[Puzzle]] =
     if (games.isEmpty) None
     else {
       val game = games.head

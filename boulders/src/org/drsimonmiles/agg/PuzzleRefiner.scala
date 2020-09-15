@@ -3,7 +3,7 @@ package org.drsimonmiles.agg
 import org.drsimonmiles.itapprox.{Choice, Decision}
 import org.drsimonmiles.itapprox.ControlledWander.wander
 import org.drsimonmiles.itapprox.Decision.preferredDecision
-import org.drsimonmiles.rocks.Configuration
+import org.drsimonmiles.rocks.{Command, Configuration, CreateCommand}
 import org.drsimonmiles.util.GeneratedMap
 import org.drsimonmiles.util.Measure.measure
 
@@ -42,7 +42,7 @@ object PuzzleRefiner {
                                         initialState: Puzzle => Game,
                                         makeHarder: (Puzzle, Solution) => Option[Decision[Puzzle]],
                                         makePossible: (ArrayBuffer[Game], ArrayBuffer[Game]) => Option[Decision[Puzzle]])
-                                        (implicit config: Configuration): Option[Puzzle] = {
+                                        (implicit config: Command): Option[Puzzle] = {
     // Returns the solution of a puzzle, buffering to not need to re-solve solved puzzles
     val solution = bufferedSolve[Puzzle, Solution] (puzzle => solve (canonical (puzzle)))
     // Records what states are tried and are to try next per puzzle
@@ -51,7 +51,7 @@ object PuzzleRefiner {
     /** Determines whether the given puzzle is acceptable. */
     def acceptablePuzzle (puzzle: Puzzle): Boolean = solution (puzzle).exists (acceptable (puzzle, _))
     /** Return a choice that could improve the given puzzle with the given solution (if any) */
-    def improvePuzzle (puzzle: Puzzle)(implicit config: Configuration): Option[Choice[Puzzle]] = solution (puzzle) match {
+    def improvePuzzle (puzzle: Puzzle)(implicit config: Command): Option[Choice[Puzzle]] = solution (puzzle) match {
       // For a puzzle with a solution, try to make it harder by blocking the path
       case Some (path) => makeHarder (puzzle, path).map (preferredDecision)
       // For a puzzle without a solution, try to make it possible by placing an enabling element somewhere reachable
@@ -65,7 +65,7 @@ object PuzzleRefiner {
   }
 
   /** Wraps the given solve method so that an existing solution is looked up before a new one is generated. */
-  def bufferedSolve[Puzzle, Solution] (solve: Puzzle => Option[Solution])(implicit config: Configuration): Puzzle => Option[Solution] = {
+  def bufferedSolve[Puzzle, Solution] (solve: Puzzle => Option[Solution])(implicit config: Command): Puzzle => Option[Solution] = {
     val buffer = new GeneratedMap[Puzzle, Option[Solution]] (solve)
     puzzle: Puzzle => buffer.apply (puzzle)
   }

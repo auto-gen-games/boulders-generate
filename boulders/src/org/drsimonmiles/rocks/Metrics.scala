@@ -18,7 +18,7 @@ object Metrics extends App {
     * Game states are counted by the variety of different vertical positions of boulders.
     * The intuition for this is that the player moving or the player pushing a boulder along sideways may be
     * a recoverable change whereas pushing a boulder to fall is not. */
-  def breadth (puzzle: Puzzle): Int = {
+  def challenge (puzzle: Puzzle): Int = {
     @tailrec
     def breadth (games: List[Game], tried: List[Game]): Int = games match {
       case Nil => tried.length
