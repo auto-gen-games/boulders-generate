@@ -2,9 +2,12 @@ package org.drsimonmiles.rocks
 
 import io.circe._
 import io.circe.parser._
+import org.drsimonmiles.rocks.Definition.baseGameDefinition
+
 import scala.io.Source
 
 trait Command {
+  val definition: Definition
   val measuring: Boolean
   val logging: Boolean
 }
@@ -14,6 +17,8 @@ trait SolvingCommand extends Command {
   val maxSolveTime: Long
 }
 case class CreateCommand (
+  // Definition of this puzzle type
+  definition: Definition,
   // The width of the puzzles created
   width: Int,
   // The height of the puzzles created
@@ -34,6 +39,8 @@ case class CreateCommand (
 ) extends Command
 
 case class SolveCommand (
+  // Definition of this puzzle type
+  definition: Definition,
   // Directory where puzzles are stored
   puzzlesDirectory: String,
   // File from which to load puzzles to solve
@@ -49,6 +56,8 @@ case class SolveCommand (
 ) extends SolvingCommand
 
 case class ShowCommand (
+                         // Definition of this puzzle type
+                         definition: Definition,
   // Directory where puzzles are stored
   puzzlesDirectory: String,
   // File from which to load puzzles to solve
@@ -64,6 +73,8 @@ case class ShowCommand (
 ) extends SolvingCommand
 
 case class RateCommand (
+                         // Definition of this puzzle type
+                         definition: Definition,
   // Directory where puzzles are stored
   puzzlesDirectory: String,
   // File from which to load puzzles to solve
@@ -77,6 +88,8 @@ case class RateCommand (
 ) extends Command
 
 case class SortCommand (
+                         // Definition of this puzzle type
+                         definition: Definition,
   // Directory where puzzles are stored
   puzzlesDirectory: String,
   // File from which to load puzzles to solve
@@ -90,8 +103,8 @@ case class SortCommand (
 ) extends Command
 
 object Configuration {
-  case class Defaults (biasAgainstBoulders: Double, puzzlesDirectory: String, maxSolveTime: Long,
-                       measuring: Boolean, logging: Boolean)
+  case class Defaults (definition: Definition, biasAgainstBoulders: Double, puzzlesDirectory: String,
+                       maxSolveTime: Long, measuring: Boolean, logging: Boolean)
 
   def fromSource (jsonFile: String): Either[Throwable, Configuration] = {
     val json = Source.fromResource (jsonFile).getLines.mkString ("\n")
@@ -105,8 +118,16 @@ object Configuration {
     }
   }
 
+  def loadDefinition (result: Decoder.Result[String]): Decoder.Result[Definition] =
+    result.map (Definition.fromName) match {
+      case Left (notFound) => Left (notFound)
+      case Right (None) => Left (DecodingFailure ("Unknown game definition name", List.empty))
+      case Right (Some (found)) => Right (found)
+    }
+
   def loadDefaults (cursor: ACursor): Defaults =
     Defaults (
+      definition = loadDefinition (cursor.get[String]("definition")).getOrElse (baseGameDefinition),
       biasAgainstBoulders = cursor.get[Double]("biasAgainstBoulders").getOrElse (0.5),
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse ("puzzles"),
       maxSolveTime = cursor.get[Long]("maxSolveTime").getOrElse (10000L),
@@ -132,6 +153,7 @@ object Configuration {
       height <- cursor.get[Int]("height")
       number <- cursor.get[Int]("number")
     } yield CreateCommand (
+      definition = loadDefinition (cursor.get[String]("definition")).getOrElse (defaults.definition),
       width = width,
       height = height,
       number = number,
@@ -146,6 +168,7 @@ object Configuration {
       input <- cursor.get[String]("inputFile")
       output <- cursor.get[String]("outputFile")
     } yield SolveCommand (
+      definition = loadDefinition (cursor.get[String]("definition")).getOrElse (defaults.definition),
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
       inputFile = input,
       outputFile = output,
@@ -158,6 +181,7 @@ object Configuration {
       input <- cursor.get[String]("inputFile")
       output <- cursor.get[String]("outputFile")
     } yield ShowCommand (
+      definition = loadDefinition (cursor.get[String]("definition")).getOrElse (defaults.definition),
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
       inputFile = input,
       outputFile = output,
@@ -170,6 +194,7 @@ object Configuration {
       input <- cursor.get[String]("inputFile")
       output <- cursor.get[String]("outputFile")
     } yield RateCommand (
+      definition = loadDefinition (cursor.get[String]("definition")).getOrElse (defaults.definition),
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
       inputFile = input,
       outputFile = output,
@@ -181,6 +206,7 @@ object Configuration {
       input <- cursor.get[String]("inputFile")
       output <- cursor.get[String]("outputFile")
     } yield SortCommand (
+      definition = loadDefinition (cursor.get[String]("definition")).getOrElse (defaults.definition),
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
       inputFile = input,
       outputFile = output,

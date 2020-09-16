@@ -1,7 +1,7 @@
 package org.drsimonmiles.rocks
 
 import org.drsimonmiles.rocks.PuzzleCreation.createSolver
-import org.drsimonmiles.util.Matrix.updated
+import org.drsimonmiles.util.Matrix.{flipped, updated}
 import org.drsimonmiles.util.TimeOut.timeOutFromNow
 import scala.collection.mutable.ArrayBuffer
 
@@ -21,21 +21,21 @@ final case class Position (x: Int, y: Int) {
 /**
   * Represents a rocks puzzle. All cells outside the playing area are assumed to have walls, floor and ceiling but no boulder.
   *
-  * @param man The starting position of the man.
+  * @param player The starting position of the player.
   * @param exit The position of the exit.
-  * @param star The position of the star, if any.
+  * @param diamond The position of the diamond, if any.
   * @param walls A 2D array (x then y indices) of whether each cell has a wall on its left.
   * @param floors A 2D array (x then y indices) of whether each cell has a floor.
   * @param boulders A 2D array (x then y indices) of whether each cell has a boulder in it at start (not possible for leftmost and rightmost x).
   */
-final case class Puzzle (man: Position, exit: Position, star: Position,
-                   walls: List[List[Setting]], floors: List[List[Setting]], boulders: List[List[Setting]]) {
+final case class Puzzle (player: Position, exit: Position, diamond: Position,
+                         walls: List[List[Setting]], floors: List[List[Setting]], boulders: List[List[Setting]]) {
   def hasBoulder (x: Int, y: Int): Boolean = x > 0 && x < width - 1 && boulders (x - 1) (y) == Yes
   def hasExit (x: Int, y: Int): Boolean = exit.at (x, y)
   def hasFloor (x: Int, y: Int): Boolean = y < 0 || y >= height - 1 || x < 0 || x >= width || floors (x)(y) == Yes
   def hasLeftWall (x: Int, y: Int): Boolean = x <= 0 || x >= width || y < 0 || y >= height || walls (x - 1)(y) == Yes
-  def hasMan (x: Int, y: Int): Boolean = man.at (x, y)
-  def hasStar (x: Int, y: Int): Boolean = star.at (x, y)
+  def hasPlayer (x: Int, y: Int): Boolean = player.at (x, y)
+  def hasDiamond (x: Int, y: Int): Boolean = diamond.at (x, y)
   val height: Int = boulders.head.size
   def inRange (x: Int, y: Int): Boolean = x >= 0 && x < width && y >= 0 && y < height
   def knowBoulder (x: Int, y: Int): Boolean = x <= 0 || x >= width - 1 || y < 0 || y >= height || boulders (x - 1)(y) != Unspecified
@@ -58,6 +58,14 @@ object Puzzle {
     puzzle.copy (walls = allDefined (puzzle.walls), floors = allDefined (puzzle.floors), boulders = allDefined (puzzle.boulders))
   }
 
+  def flipPosition (position: Position, puzzle: Puzzle): Position =
+    Position (position.x, puzzle.height - 1 - position.y)
+
+  def flippedPuzzle (puzzle: Puzzle): Puzzle =
+    Puzzle (
+      flipPosition (puzzle.player, puzzle), flipPosition (puzzle.exit, puzzle), flipPosition (puzzle.diamond, puzzle),
+      flipped (puzzle.walls), flipped (puzzle.floors), flipped (puzzle.boulders))
+
   /** Sets whether there is a boulder at the given position of the puzzle if possible, or returns None if not. */
   def setBoulder (puzzle: Puzzle, x: Int, y: Int, present: Boolean): Option[Puzzle] =
   // If already set, check that this is in range and set as requested.
@@ -65,7 +73,7 @@ object Puzzle {
       if (puzzle.inRange (x, y) && puzzle.hasBoulder (x, y) == present) Some (puzzle) else None
     else
       // If the request is to place a boulder, check it doesn't clash with the man, exit or star
-      if (present && (puzzle.hasMan (x, y) || puzzle.hasExit (x, y) || puzzle.hasStar (x, y))) None
+      if (present && (puzzle.hasPlayer (x, y) || puzzle.hasExit (x, y) || puzzle.hasDiamond (x, y))) None
       // Finally, check that putting the boulder here does not cause it to be trapped in a corner
       else checkCornering (puzzle.copy (boulders = updated (puzzle.boulders, x - 1, y, Setting (present))), x, y)
 
@@ -90,26 +98,12 @@ object Puzzle {
 
   def toCode (puzzle: Puzzle): String = {
     import puzzle._
-    width + "," + height + ";" + man.x + "," + man.y + ";" + exit.x + "," + exit.y + ";" +
-      star.x + "," + star.y + ";" +
+    width + "," + height + ";" + player.x + "," + player.y + ";" + exit.x + "," + exit.y + ";" +
+      diamond.x + "," + diamond.y + ";" +
       (0 until height).flatMap (y => (0 until width).map (x =>
         if (hasFloor (x, y)) if (hasLeftWall (x, y)) 'F' else if (hasBoulder (x, y)) 'E' else 'D'
         else if (hasLeftWall (x, y)) 'C' else if (hasBoulder (x, y)) 'B' else 'A'
       )).mkString
-  }
-
-  def toString (puzzle: Puzzle)(implicit config: SolvingCommand): String = {
-    import puzzle._
-    val outer = "+" + (for (_ <- 0 until width) yield "-+").mkString
-    def within (y: Int) = "|" + (for (x <- 0 until width) yield {
-      (if (hasBoulder (x, y)) "O" else if (hasMan (x, y)) "M" else if (hasExit (x, y)) "X" else if (hasStar (x, y)) "*" else " ") + (if (hasLeftWall (x + 1, y)) "|" else " ")
-    }).mkString
-    def under (y: Int) = "+" + (for (x <- 0 until width) yield {(if (hasFloor (x, y)) "-" else " ") + "+"}).mkString
-    val grid = outer + "\n" + (for (y <- 0 until height) yield {within (y) + "\n" + under (y) + "\n"}).mkString
-    createSolver (timeOutFromNow (config.maxSolveTime))(puzzle) match {
-      case Some (solution) => s"$grid\nlength:${Metrics.length (solution)}, weaving:${Metrics.weaving (puzzle, solution)}\n$solution\n"
-      case None => s"$grid\nNo solution found\n"
-    }
   }
 
   /** Checks whether the given puzzle has a boulder at the given position trapped against a wall, exit or another boulder,
@@ -137,9 +131,23 @@ object Puzzle {
         if (!hasFloor (x, y)) markFrom (x, y + 1)
       }
     // Mark all accessible positions starting from the man's starting position
-    markFrom (man.x, man.y)
+    markFrom (player.x, player.y)
     // Once marked, check that the exit and star are accessible, return the puzzle if so
-    if (accessible (exit.x)(exit.y) && accessible (star.x)(star.y)) Some (puzzle) else None
+    if (accessible (exit.x)(exit.y) && accessible (diamond.x)(diamond.y)) Some (puzzle) else None
+  }
+
+  def toString (puzzle: Puzzle)(implicit config: SolvingCommand): String = {
+    import puzzle._
+    val outer = "+" + (for (_ <- 0 until width) yield "-+").mkString
+    def within (y: Int) = "|" + (for (x <- 0 until width) yield {
+      (if (hasBoulder (x, y)) "O" else if (hasPlayer (x, y)) "M" else if (hasExit (x, y)) "X" else if (hasDiamond (x, y)) "*" else " ") + (if (hasLeftWall (x + 1, y)) "|" else " ")
+    }).mkString
+    def under (y: Int) = "+" + (for (x <- 0 until width) yield {(if (hasFloor (x, y)) "-" else " ") + "+"}).mkString
+    val grid = outer + "\n" + (for (y <- 0 until height) yield {within (y) + "\n" + under (y) + "\n"}).mkString
+    createSolver (timeOutFromNow (config.maxSolveTime))(config.definition)(puzzle) match {
+      case Some (solution) => s"$grid\nlength:${Metrics.length (solution)}, weaving:${Metrics.weaving (puzzle, solution)}\n$solution\n"
+      case None => s"$grid\nNo solution found\n"
+    }
   }
 
   def fromCode (code: String): Option[Puzzle] = {
@@ -163,7 +171,7 @@ object Puzzle {
         case 'D' => puzzle.flatMap (setFloor (_, x, y, present = true))
         case 'E' => puzzle.flatMap (setBoulder (_, x, y, present = true)).flatMap (setFloor (_, x, y, present = true))
         case 'F' => puzzle.flatMap (setFloor (_, x, y, present = true)).flatMap (setLeftWall (_, x, y, present = true))
-        case _ => puzzle
+        case _   => puzzle
       }
     }
     puzzle

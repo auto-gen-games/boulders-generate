@@ -7,10 +7,9 @@ case object JumpLeft extends Move
 case object JumpRight extends Move
 case object Jump extends Move
 case object Fall extends Move
+case object Flip extends Move
 
 object Move {
-  val allMoves = Seq (WalkLeft, WalkRight, JumpLeft, JumpRight, Jump, Fall)
-
   def toString (move: Move): String =
     move match {
       case WalkLeft => "L"

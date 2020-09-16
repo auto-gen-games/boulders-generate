@@ -44,7 +44,7 @@ object Logger {
     import puzzle._
     val outer = "+" + (for (_ <- 0 until width) yield "-+").mkString
     def within (y: Int) = "|" + (for (x <- 0 until width) yield {
-      (if (hasBoulder (x, y)) "O" else if (hasMan (x, y)) "M" else if (hasExit (x, y)) "X" else if (hasStar (x, y)) "*" else if (knowBoulder (x, y)) " " else "?") +
+      (if (hasBoulder (x, y)) "O" else if (hasPlayer (x, y)) "M" else if (hasExit (x, y)) "X" else if (hasDiamond (x, y)) "*" else if (knowBoulder (x, y)) " " else "?") +
         (if (hasLeftWall (x + 1, y)) "|" else if (knowLeftWall (x + 1, y)) " " else "{")
     }).mkString
     def under (y: Int) = "+" + (for (x <- 0 until width) yield {

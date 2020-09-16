@@ -1,34 +1,35 @@
 package org.drsimonmiles.rocks
 
 import org.drsimonmiles.agg.PuzzleRefiner.generate
-import org.drsimonmiles.itapprox.{Both, Choice, Decision}
 import org.drsimonmiles.itapprox.Decision.{firstBiasedOr, only}
+import org.drsimonmiles.itapprox.{Both, Choice, Decision}
 import org.drsimonmiles.rocks.Game.{move, perform}
-import org.drsimonmiles.rocks.Metrics.length
 import org.drsimonmiles.rocks.Puzzle.setBoulders
 import org.drsimonmiles.rocks.Solve.solve
-import org.drsimonmiles.util.{Logger, Measure}
 import org.drsimonmiles.util.TimeOut.timeOutFromNow
+import org.drsimonmiles.util.{Logger, Measure}
+
+import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random.{nextInt => randomInt}
 
 object PuzzleCreation {
   /** Generate a random puzzle and return it if successful. */
-  def createPuzzle (width: Int, height: Int, hopelessLength: Int, timePerAttempt: Long, minLength: Int)(implicit config: CreateCommand): Option[(Puzzle, List[Move])] = {
+  def createPuzzle (width: Int, height: Int, hopelessLength: Int, timePerAttempt: Long, minChallenge: Int)(implicit config: CreateCommand): Option[(Puzzle, List[Move])] = {
     // Create the initial grid with man, star and exit placed
     val initialPuzzle = createInitialGrid (width, height)
     // The initial choices regard how to ensure the man does not fall and neither man nor star is squashed at the start
-    val initialChoices = Nil ++ supportChoice (initialPuzzle.man, width, height) ++ notSquashedChoice (initialPuzzle.man) ++ notSquashedChoice (initialPuzzle.star)
+    val initialChoices = Nil ++ supportChoice (initialPuzzle.player, width, height) ++ notSquashedChoice (initialPuzzle.player) ++ notSquashedChoice (initialPuzzle.diamond)
     // Time limit on attempting to generate this puzzle
     val terminate = timeOutFromNow (timePerAttempt)
-    val solver = createSolver (terminate)
-    val acceptableLength = acceptablyHard (minLength)(_, _)
+    val solver = createSolver (terminate)(config.definition)
+    val acceptableChallenge: (Puzzle, List[Move]) => Boolean = config.definition.acceptablyHard (_, _, minChallenge)
 
     // Generate a puzzle using puzzle refinement, and perform a final check that the solution is acceptably hard
-    generate (initialPuzzle, initialChoices, hopelessLength, terminate, consequences, solver, acceptableLength, harder,
+    generate (initialPuzzle, initialChoices, hopelessLength, terminate, consequences, solver, acceptableChallenge, harder,
       Puzzle.toFullyDefined, Game.apply, makeHarder, couldEnable).
-      flatMap (puzzle => createSolver (timeOutFromNow (timePerAttempt))(puzzle).map (solution => (puzzle, solution))).
-      filter (puzzleSolution => acceptableLength (puzzleSolution._1, puzzleSolution._2))
+      flatMap (puzzle => createSolver (timeOutFromNow (timePerAttempt))(config.definition)(puzzle).map (solution => (puzzle, solution))).
+      filter (puzzleSolution => acceptableChallenge (puzzleSolution._1, puzzleSolution._2))
   }
 
   /** Generate the initial grid, with a man, exit and star set. */
@@ -43,6 +44,7 @@ object PuzzleCreation {
 
   /** Generate a random position within the given bounds (minX and minY inclusive, maxX and maxY exclusive) and
     *  excluding disallowed positions. */
+  @tailrec
   def randomPosition (minX: Int, minY: Int, maxX: Int, maxY: Int, disallowed: List[Position]): Position = {
     val position = Position (minX + randomInt (maxX - minX), minY + randomInt (maxY - minY))
     if (disallowed.contains (position)) randomPosition (minX, minY, maxX, maxY, disallowed)
@@ -50,7 +52,7 @@ object PuzzleCreation {
   }
 
   /** Define a solver for a puzzle with a timeout based on the current time */
-  def createSolver (timeOut: () => Boolean): Puzzle => Option[List[Move]] = {
+  def createSolver (timeOut: () => Boolean)(implicit definition: Definition): Puzzle => Option[List[Move]] = {
     puzzle: Puzzle => solve (Game (puzzle))(timeOut)
   }
 
@@ -124,6 +126,7 @@ object PuzzleCreation {
       case JumpRight =>
         if (hasBoulder (x + 1, y - 1)) List (SetFloor (x, y - 1, true), SetLeftWall (x + 1, y - 1, true), SetLeftWall (x + 2, y - 1, true))
         else List (SetFloor (x, y - 1, true), SetLeftWall (x + 1, y - 1, true), SetBoulder (x + 1, y - 1, true))
+      case Flip => Nil
     })
   }
 
@@ -167,7 +170,7 @@ object PuzzleCreation {
   /** In the given game state, what order of actions would make sense to try given the relative position of the man, star and exit. */
   def orderedActions (game: Game): List[Move] = {
     // Target the star if present or the exit if not
-    val target = game.star.getOrElse (game.exit)
+    val target = game.diamond.getOrElse (game.exit)
     // Return the appropriate ordered list of actions given the direction to the target
     if (game.x < target.x) if (game.y < target.y) aboveLeftActions else belowLeftActions
     else if (game.y < target.y) aboveRightActions else belowRightActions
@@ -192,12 +195,6 @@ object PuzzleCreation {
         couldEnable (games, tried)
       }
     }
-
-  /** Determine whether the difficulty of a given puzzle is acceptable, as determined by the number of non-fall
-    *  moves in the solution (length) and the number of repeat visits to positions required (non-linearity/weaving)
-    * Ignored for now (always true). */
-  def acceptablyHard (minLength: Int)(puzzle: Puzzle, solution: List[Move]): Boolean =
-    length (solution) >= minLength // length (solution) >= minLength && weaving (puzzle, solution) >= minWeaving
 
   /**
     * Determines whether the first given puzzle is harder than the second, according to the number of non-fall moves

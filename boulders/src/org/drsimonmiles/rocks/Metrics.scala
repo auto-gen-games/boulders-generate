@@ -18,7 +18,7 @@ object Metrics extends App {
     * Game states are counted by the variety of different vertical positions of boulders.
     * The intuition for this is that the player moving or the player pushing a boulder along sideways may be
     * a recoverable change whereas pushing a boulder to fall is not. */
-  def challenge (puzzle: Puzzle): Int = {
+  def challenge (puzzle: Puzzle)(implicit definition: Definition): Int = {
     @tailrec
     def breadth (games: List[Game], tried: List[Game]): Int = games match {
       case Nil => tried.length
@@ -28,7 +28,7 @@ object Metrics extends App {
         else {
           // Get the next available states and try those for which no pushing was involved before others on the list.
           // This is because they are likely to be equivalent states to the starting state, i.e. can move back again.
-          val moved = getAvailableMoves (game).map (move (game, _)).filterNot (tried.contains).toList
+          val moved = getAvailableMoves (game)(definition).map (move (game, _)).filterNot (tried.contains).toList
             .partition (_.boulders == game.boulders)
           breadth (moved._1 ::: rest ::: moved._2, game :: tried)
         }

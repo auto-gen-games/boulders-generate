@@ -7,7 +7,7 @@ import org.drsimonmiles.rocks.Metrics.challenge
 import org.drsimonmiles.rocks.PuzzleCreation.createPuzzle
 
 object Main extends App {
-  val configFile = "command.json"
+  val configFile = if (args.length > 0) args (0) else "command.json"
   val configuration = Configuration.fromSource (configFile) match {
     case Left (error) =>
       System.err.println (s"Could not load configuration file $configFile")
@@ -18,10 +18,10 @@ object Main extends App {
   }
 
   configuration.commands.foreach {
-    case command @ CreateCommand (width, height, number, _, puzzlesDirectory, _, _, _) =>
+    case command @ CreateCommand (definition, width, height, number, _, puzzlesDirectory, _, _, _) =>
       println (s"Generating for $width x $height")
       var created = 0
-      val puzzlesFileName = s"puzzles-$width-by-$height.txt"
+      val puzzlesFileName = s"puzzles-$width-by-$height-${definition.name}.txt"
       val puzzlesFile = new File (new File (puzzlesDirectory), puzzlesFileName)
       var minChallenge = 0
       while (created < number) {
@@ -29,26 +29,26 @@ object Main extends App {
         val newPuzzle = createPuzzle (width, height, width * height * 10, width * height * 5000L, minChallenge)(command)
         if (newPuzzle.isDefined) {
           this.synchronized (print ("+"))
-          minChallenge = minChallenge.max (Metrics.challenge (newPuzzle.get._1))
+          minChallenge = minChallenge.max (Metrics.challenge (newPuzzle.get._1)(definition))
         }
         newPuzzle.foreach (puzzleSolution => addToFile (puzzlesFile, puzzleSolution._1))
         created += newPuzzle.size
       }
-    case SolveCommand (puzzlesDirectory, inputFile, outputFile, _, _, _) =>
+    case SolveCommand (definition, puzzlesDirectory, inputFile, outputFile, _, _, _) =>
       processPuzzles (puzzlesDirectory, inputFile, outputFile){
-        _.map (puzzle => Solve.toString (Solve.solve (Game (puzzle))(() => false))).mkString ("\n")
+        _.map (puzzle => Solve.toString (Solve.solve (Game (puzzle))(() => false)(definition))).mkString ("\n")
       }
-    case command @ ShowCommand (puzzlesDirectory, inputFile, outputFile, _, _, _) =>
+    case command @ ShowCommand (definition, puzzlesDirectory, inputFile, outputFile, _, _, _) =>
       processPuzzles (puzzlesDirectory, inputFile, outputFile){
         _.map (p => Puzzle.toString (p)(command)).mkString ("\n\n")
       }
-    case RateCommand (puzzlesDirectory, inputFile, outputFile, _, _) =>
+    case RateCommand (definition, puzzlesDirectory, inputFile, outputFile, _, _) =>
       processPuzzles (puzzlesDirectory, inputFile, outputFile){
-        _.map (level => (level, challenge (level))).map (_._2).mkString ("\n")
+        _.map (level => (level, challenge (level)(definition))).map (_._2).mkString ("\n")
       }
-    case SortCommand (puzzlesDirectory, inputFile, outputFile, _, _) =>
+    case SortCommand (definition, puzzlesDirectory, inputFile, outputFile, _, _) =>
       processPuzzles (puzzlesDirectory, inputFile, outputFile){
-        _.map (level => (level, challenge (level))).sortBy (_._2).map (s => Puzzle.toCode (s._1)).mkString ("\n")
+        _.map (level => (level, challenge (level)(definition))).sortBy (_._2).map (s => Puzzle.toCode (s._1)).mkString ("\n")
       }
   }
 

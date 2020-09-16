@@ -9,10 +9,9 @@
   },
   "commands" : [
     {
-      "command" : "create",
-      "width" : 5,
-      "height" : 5,
-      "number" : 5
+      "command" : "solve",
+      "inputFile" : "test-flip.txt",
+      "outputFile" : "test-solution.txt"
     }
   ]
 }
