@@ -3,7 +3,7 @@ package org.drsimonmiles.rocks
 import org.drsimonmiles.rocks.Puzzle.flippedPuzzle
 import scala.annotation.tailrec
 
-final case class Game (puzzle: Puzzle, x: Int, y: Int, boulders: Set[(Int, Int)], diamondRemains: Boolean, flipRemains: Boolean = false) {
+final case class Game (puzzle: Puzzle, x: Int, y: Int, boulders: Set[(Int, Int)], diamondRemains: Boolean, flipRemains: Boolean = true) {
   val exit: Position = puzzle.exit
   def hasBoulder (bx: Int, by: Int): Boolean = boulders.contains (bx, by)
   def hasExit (ex: Int, ey: Int): Boolean = puzzle.hasExit (ex, ey)
@@ -21,7 +21,8 @@ final case class Game (puzzle: Puzzle, x: Int, y: Int, boulders: Set[(Int, Int)]
 object Game {
   /** Create the initial game state from the given puzzle. */
   def apply (puzzle: Puzzle): Game = Game (puzzle, puzzle.player.x, puzzle.player.y,
-    (for (bx <- 1 until puzzle.width - 1; by <- 0 until puzzle.height; if puzzle.hasBoulder (bx, by)) yield (bx, by)).toSet, true)
+    (for (bx <- 1 until puzzle.width - 1; by <- 0 until puzzle.height; if puzzle.hasBoulder (bx, by)) yield (bx, by)).toSet,
+    diamondRemains = true, flipRemains = true)
 
   /** Determines whether a boulder at the given position would, at that position or after falling, squash
     * the player, diamond or exit. */
@@ -67,6 +68,7 @@ object Game {
     }
     def stillFalling: Boolean = move != Fall && canMove (game, Fall)
     def alreadyFlipped: Boolean = move == Flip && !game.flipRemains
+
     // Possible to move if the game is not already won, and
     //  the player is not trying to do anything but fall when there is no support below, and
     //  the player, diamond and exit would not be squashed by the move, and

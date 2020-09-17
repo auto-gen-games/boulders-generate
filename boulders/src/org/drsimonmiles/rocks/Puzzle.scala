@@ -159,10 +159,10 @@ object Puzzle {
     val area = coordinate (parts (0))
     val width = area.x
     val height = area.y
-    val man = coordinate (parts (1))
+    val player = coordinate (parts (1))
     val exit = coordinate (parts (2))
-    val star = coordinate (parts (3))
-    var puzzle: Option[Puzzle] = Some (Puzzle (width, height, man, exit, star))
+    val diamond = coordinate (parts (3))
+    var puzzle: Option[Puzzle] = Some (Puzzle (width, height, player, exit, diamond))
     val cells = if (parts.length == 4) parts (3) else parts (4)
     for (y <- 0 until height; x <- 0 until width) {
       puzzle = cells (y * width + x) match {

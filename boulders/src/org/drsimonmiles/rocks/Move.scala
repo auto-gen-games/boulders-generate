@@ -17,6 +17,7 @@ object Move {
       case JumpLeft => "UL"
       case JumpRight => "UR"
       case Jump => "U"
+      case Flip => "F"
       case _ => ""
     }
 }
