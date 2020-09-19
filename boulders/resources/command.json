@@ -9,10 +9,12 @@
   },
   "commands" : [
     {
-      "command" : "create",
+      "command" : "solve",
       "width" : 5,
       "height" : 5,
-      "number" : 5
+      "number" : 5,
+      "inputFile" : "puzzles-5-by-5-flip.txt",
+      "outputFile" : "solutions-5-by-5-flip.txt"
     }
   ]
 }

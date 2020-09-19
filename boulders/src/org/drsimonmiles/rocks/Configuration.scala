@@ -29,6 +29,8 @@ case class CreateCommand (
                            puzzlesDirectory: String,
                            // When time-out occurs in one creation attempt
                            maxAttemptTime: Long,
+                         // What minimum challenge each puzzle must have as a proportion of the best so far
+                         challengeImprovement: Double,
                            // Whether performance measuring is turned on
                            measuring: Boolean,
                            // Whether logging is turned on
@@ -97,7 +99,7 @@ case class SortCommand (
 
 object Configuration {
   case class Defaults (definition: Definition, biasAgainstBoulders: Double, puzzlesDirectory: String,
-                       maxAttemptTime: Long, measuring: Boolean, logging: Boolean)
+                       maxAttemptTime: Long, challengeImprovement: Double, measuring: Boolean, logging: Boolean)
 
   def fromSource (jsonFile: String): Either[Throwable, Configuration] = {
     val json = Source.fromResource (jsonFile).getLines.mkString ("\n")
@@ -124,6 +126,7 @@ object Configuration {
       biasAgainstBoulders = cursor.get[Double]("biasAgainstBoulders").getOrElse (0.5),
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse ("puzzles"),
       maxAttemptTime = cursor.get[Long]("maxAttemptTime").getOrElse (10000L),
+      challengeImprovement = cursor.get[Double]("challengeImprovement").getOrElse(0.8),
       measuring = cursor.get[Boolean]("measuring").getOrElse (false),
       logging = cursor.get[Boolean]("logging").getOrElse (false)
     )
@@ -153,6 +156,7 @@ object Configuration {
       biasAgainstBoulders = cursor.get[Double]("biasAgainstBoulders").getOrElse (defaults.biasAgainstBoulders),
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
       maxAttemptTime = cursor.get[Long]("maxAttemptTime").getOrElse (defaults.maxAttemptTime),
+      challengeImprovement = cursor.get[Double]("challengeImprovement").getOrElse (defaults.challengeImprovement),
       measuring = cursor.get[Boolean]("measuring").getOrElse (defaults.measuring),
       logging = cursor.get[Boolean]("logging").getOrElse (defaults.logging))
 

@@ -17,16 +17,17 @@ object Main extends App {
     case Right (data) => data
   }
 
+  var minChallenge = 0
   configuration.commands.foreach {
-    case command @ CreateCommand (definition, width, height, number, _, puzzlesDirectory, _, _, _) =>
+    case command @ CreateCommand (_, _, _, _, _, _, _, _, _, _) =>
+      import command._
       println (s"Generating for $width x $height")
       var created = 0
       val puzzlesFileName = s"puzzles-$width-by-$height-${definition.name}.txt"
       val puzzlesFile = new File (new File (puzzlesDirectory), puzzlesFileName)
-      var minChallenge = 0
       while (created < number) {
         print (".")
-        val newPuzzle = createPuzzle (width, height, width * height * 10, width * height * 5000L, minChallenge)(command)
+        val newPuzzle = createPuzzle (width, height, width * height * 10, width * height * 5000L, (minChallenge * challengeImprovement).toInt)(command)
         if (newPuzzle.isDefined) {
           this.synchronized (print ("+"))
           minChallenge = minChallenge.max (Metrics.challenge (newPuzzle.get._1)(definition))

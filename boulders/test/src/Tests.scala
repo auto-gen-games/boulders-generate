@@ -10,13 +10,17 @@ object Tests extends TestSuite {
           // Create puzzle only possible with flip
           val code = "3,3;1,2;2,0;0,0;CAACAAFDD"
           val puzzle = Puzzle.fromCode (code).get
-          // Solve puzzle within time-out
           val game = Game (puzzle)
-          val timeout = TimeOut.timeOutFromNow (10000L)
-          val solution = Solve.solve (game)(timeout)(Definition.flipGameDefinition)
-          println (Solve.toString (solution))
+          val solution = Solve.solve (game)(Definition.flipGameDefinition)
           // Assert puzzle solved
           assert (solution.isDefined)
+        }
+        "insoluble puzzle" - {
+          val code = "5,5;2,0;1,3;4,4;CEDCACEAAAFDDAACDDDDFEDDD"
+          val puzzle = Puzzle.fromCode (code).get
+          val game = Game (puzzle)
+          val solution = Solve.solve (game)(Definition.flipGameDefinition)
+          assert (solution.isEmpty)
         }
       }
     }

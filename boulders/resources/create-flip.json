@@ -1,0 +1,48 @@
+{
+  "defaults" : {
+    "definition" : "flip",
+    "biasAgainstBoulders" : 0.5,
+    "puzzlesDirectory" : "puzzles",
+    "maxAttemptTime" : 10000,
+    "measuring" : false,
+    "logging" : false
+  },
+  "commands" : [
+    {
+      "command" : "create",
+      "width" : 5,
+      "height" : 5,
+      "number" : 5
+    },
+    {
+      "command" : "create",
+      "width" : 6,
+      "height" : 6,
+      "number" : 9
+    },
+    {
+      "command" : "create",
+      "width" : 7,
+      "height" : 6,
+      "number" : 9
+    },
+    {
+      "command" : "create",
+      "width" : 8,
+      "height" : 6,
+      "number" : 9
+    },
+    {
+      "command" : "create",
+      "width" : 9,
+      "height" : 6,
+      "number" : 9
+    },
+    {
+      "command" : "create",
+      "width" : 10,
+      "height" : 6,
+      "number" : 9
+    }
+  ]
+}

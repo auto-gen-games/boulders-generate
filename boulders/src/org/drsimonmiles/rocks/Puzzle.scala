@@ -1,8 +1,8 @@
 package org.drsimonmiles.rocks
 
 import org.drsimonmiles.rocks.PuzzleCreation.createSolver
-import org.drsimonmiles.util.Matrix.{flipped, updated}
-import org.drsimonmiles.util.TimeOut.timeOutFromNow
+import org.drsimonmiles.util.Matrix.{cycleUp, flipped, updated}
+
 import scala.collection.mutable.ArrayBuffer
 
 sealed trait Setting
@@ -45,9 +45,12 @@ final case class Puzzle (player: Position, exit: Position, diamond: Position,
 }
 
 object Puzzle {
-  def apply (width: Int, height: Int, man: Position, exit: Position, star: Position): Puzzle = {
+  def apply (width: Int, height: Int, player: Position, exit: Position, diamond: Position): Puzzle = {
     def empty (across: Int, down: Int): List[List[Setting]] = List.fill[Setting] (across, down) (Unspecified)
-    new Puzzle (man, exit, star, empty (width - 1, height), empty (width, height - 1), empty (width - 2, height))
+    new Puzzle (player, exit, diamond,
+      walls = empty (width - 1, height),
+      floors = empty (width, height - 1),
+      boulders = empty (width - 2, height))
   }
 
   /** Returns a puzzle with all Unspecified walls, floors and boulders set to No, where these settings will be interpreted
@@ -63,8 +66,11 @@ object Puzzle {
 
   def flippedPuzzle (puzzle: Puzzle): Puzzle =
     Puzzle (
-      flipPosition (puzzle.player, puzzle), flipPosition (puzzle.exit, puzzle), flipPosition (puzzle.diamond, puzzle),
-      flipped (puzzle.walls), flipped (puzzle.floors), flipped (puzzle.boulders))
+      player = flipPosition (puzzle.player, puzzle), exit = flipPosition (puzzle.exit, puzzle),
+      diamond = flipPosition (puzzle.diamond, puzzle),
+      walls = flipped (puzzle.walls),
+      floors = flipped (puzzle.floors),
+      boulders = flipped (puzzle.boulders))
 
   /** Sets whether there is a boulder at the given position of the puzzle if possible, or returns None if not. */
   def setBoulder (puzzle: Puzzle, x: Int, y: Int, present: Boolean): Option[Puzzle] =

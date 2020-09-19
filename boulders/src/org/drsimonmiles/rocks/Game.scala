@@ -144,7 +144,7 @@ object Game {
     import game._
     val outer = "+" + (for (_ <- 0 until width) yield "-+").mkString
     def within (y: Int) = "|" + (for (x <- 0 until width) yield {
-      (if (hasBoulder (x, y)) "O" else if (hasPlayer (x, y)) "M" else if (hasExit (x, y)) "X" else if (hasDiamond (x, y)) "*" else " ") + (if (hasLeftWall (x + 1, y)) "|" else " ")
+      (if (hasBoulder (x, y)) "O" else if (hasPlayer (x, y)) "P" else if (hasExit (x, y)) "X" else if (hasDiamond (x, y)) "*" else " ") + (if (hasLeftWall (x + 1, y)) "|" else " ")
     }).mkString
     def under (y: Int) = "+" + (for (x <- 0 until width) yield {(if (hasFloor (x, y)) "-" else " ") + "+"}).mkString
     outer + "\n" + (for (y <- 0 until height) yield {within (y) + "\n" + under (y) + "\n"}).mkString
