@@ -18,7 +18,9 @@ object Definition {
     val name = "flip"
     val moves = Vector (WalkLeft, WalkRight, JumpLeft, JumpRight, Jump, Fall, Flip)
     def acceptablyHard (puzzle: Puzzle, solution: List[Move], pastLength: Int): Boolean =
-      solution.contains (Flip) && Metrics.challenge (puzzle)(this) >= pastLength
+      solution.contains (Flip) &&
+        Solve.solve (Game (puzzle))(baseGameDefinition).isEmpty &&
+        Metrics.challenge (puzzle)(this) >= pastLength
   }
 
   def fromName (name: String): Option[Definition] =

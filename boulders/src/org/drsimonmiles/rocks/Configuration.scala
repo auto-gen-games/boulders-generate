@@ -13,29 +13,26 @@ trait Command {
 }
 case class Configuration (commands: Vector[Command])
 
-trait SolvingCommand extends Command {
-  val maxSolveTime: Long
-}
 case class CreateCommand (
-  // Definition of this puzzle type
-  definition: Definition,
-  // The width of the puzzles created
-  width: Int,
-  // The height of the puzzles created
-  height: Int,
-  // Number of puzzles created for this width x height
-  number: Int,
-  // When deciding whether to place a boulder in refining a puzzle, this is the bias against doing so
-  // (to avoid puzzles filled with boulders): 0.0 means no bias, 1.0 means always first try not placing a boulder
-  biasAgainstBoulders: Double,
-  // Directory where puzzles are stored
-  puzzlesDirectory: String,
-  // When time-out occurs
-  maxSolveTime: Long,
-  // Whether performance measuring is turned on
-  measuring: Boolean,
-  // Whether logging is turned on
-  logging: Boolean
+                           // Definition of this puzzle type
+                           definition: Definition,
+                           // The width of the puzzles created
+                           width: Int,
+                           // The height of the puzzles created
+                           height: Int,
+                           // Number of puzzles created for this width x height
+                           number: Int,
+                           // When deciding whether to place a boulder in refining a puzzle, this is the bias against doing so
+                           // (to avoid puzzles filled with boulders): 0.0 means no bias, 1.0 means always first try not placing a boulder
+                           biasAgainstBoulders: Double,
+                           // Directory where puzzles are stored
+                           puzzlesDirectory: String,
+                           // When time-out occurs in one creation attempt
+                           maxAttemptTime: Long,
+                           // Whether performance measuring is turned on
+                           measuring: Boolean,
+                           // Whether logging is turned on
+                           logging: Boolean
 ) extends Command
 
 case class SolveCommand (
@@ -47,13 +44,11 @@ case class SolveCommand (
   inputFile: String,
   // File to which to write solutions
   outputFile: String,
-  // When time-out occurs
-  maxSolveTime: Long,
   // Whether performance measuring is turned on
   measuring: Boolean,
   // Whether logging is turned on
   logging: Boolean
-) extends SolvingCommand
+) extends Command
 
 case class ShowCommand (
                          // Definition of this puzzle type
@@ -64,13 +59,11 @@ case class ShowCommand (
   inputFile: String,
   // File to which to write solutions
   outputFile: String,
-  // When time-out occurs
-  maxSolveTime: Long,
   // Whether performance measuring is turned on
   measuring: Boolean,
   // Whether logging is turned on
   logging: Boolean
-) extends SolvingCommand
+) extends Command
 
 case class RateCommand (
                          // Definition of this puzzle type
@@ -104,7 +97,7 @@ case class SortCommand (
 
 object Configuration {
   case class Defaults (definition: Definition, biasAgainstBoulders: Double, puzzlesDirectory: String,
-                       maxSolveTime: Long, measuring: Boolean, logging: Boolean)
+                       maxAttemptTime: Long, measuring: Boolean, logging: Boolean)
 
   def fromSource (jsonFile: String): Either[Throwable, Configuration] = {
     val json = Source.fromResource (jsonFile).getLines.mkString ("\n")
@@ -130,7 +123,7 @@ object Configuration {
       definition = loadDefinition (cursor.get[String]("definition")).getOrElse (baseGameDefinition),
       biasAgainstBoulders = cursor.get[Double]("biasAgainstBoulders").getOrElse (0.5),
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse ("puzzles"),
-      maxSolveTime = cursor.get[Long]("maxSolveTime").getOrElse (10000L),
+      maxAttemptTime = cursor.get[Long]("maxAttemptTime").getOrElse (10000L),
       measuring = cursor.get[Boolean]("measuring").getOrElse (false),
       logging = cursor.get[Boolean]("logging").getOrElse (false)
     )
@@ -159,7 +152,7 @@ object Configuration {
       number = number,
       biasAgainstBoulders = cursor.get[Double]("biasAgainstBoulders").getOrElse (defaults.biasAgainstBoulders),
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
-      maxSolveTime = cursor.get[Long]("maxSolveTime").getOrElse (defaults.maxSolveTime),
+      maxAttemptTime = cursor.get[Long]("maxAttemptTime").getOrElse (defaults.maxAttemptTime),
       measuring = cursor.get[Boolean]("measuring").getOrElse (defaults.measuring),
       logging = cursor.get[Boolean]("logging").getOrElse (defaults.logging))
 
@@ -172,7 +165,6 @@ object Configuration {
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
       inputFile = input,
       outputFile = output,
-      maxSolveTime = cursor.get[Long]("maxSolveTime").getOrElse (defaults.maxSolveTime),
       measuring = cursor.get[Boolean]("measuring").getOrElse (defaults.measuring),
       logging = cursor.get[Boolean]("logging").getOrElse (defaults.logging))
 
@@ -185,7 +177,6 @@ object Configuration {
       puzzlesDirectory = cursor.get[String]("puzzlesDirectory").getOrElse (defaults.puzzlesDirectory),
       inputFile = input,
       outputFile = output,
-      maxSolveTime = cursor.get[Long]("maxSolveTime").getOrElse (defaults.maxSolveTime),
       measuring = cursor.get[Boolean]("measuring").getOrElse (defaults.measuring),
       logging = cursor.get[Boolean]("logging").getOrElse (defaults.logging))
 

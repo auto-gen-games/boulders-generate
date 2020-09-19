@@ -136,7 +136,7 @@ object Puzzle {
     if (accessible (exit.x)(exit.y) && accessible (diamond.x)(diamond.y)) Some (puzzle) else None
   }
 
-  def toString (puzzle: Puzzle)(implicit config: SolvingCommand): String = {
+  def toString (puzzle: Puzzle)(implicit config: Command): String = {
     import puzzle._
     val outer = "+" + (for (_ <- 0 until width) yield "-+").mkString
     def within (y: Int) = "|" + (for (x <- 0 until width) yield {
@@ -144,7 +144,7 @@ object Puzzle {
     }).mkString
     def under (y: Int) = "+" + (for (x <- 0 until width) yield {(if (hasFloor (x, y)) "-" else " ") + "+"}).mkString
     val grid = outer + "\n" + (for (y <- 0 until height) yield {within (y) + "\n" + under (y) + "\n"}).mkString
-    createSolver (timeOutFromNow (config.maxSolveTime))(config.definition)(puzzle) match {
+    createSolver (config.definition)(puzzle) match {
       case Some (solution) => s"$grid\nlength:${Metrics.length (solution)}, weaving:${Metrics.weaving (puzzle, solution)}\n$solution\n"
       case None => s"$grid\nNo solution found\n"
     }

@@ -20,8 +20,8 @@ object Solve {
   private val act: (Game, Move) => Option[Game] = (game: Game, move: Move) => perform (game, move)
 
   /** Solve the given game state, with a timeout function given */
-  def solve (game: Game)(terminate: () => Boolean)(implicit definition: Definition): Option[List[Move]] =
-    aStarSearch [Move, Game](game)(terminate)(pathLength)(distance)(getAvailableMoves)(act)(_.hasWon).map (_.toList)
+  def solve (game: Game)(implicit definition: Definition): Option[List[Move]] =
+    aStarSearch [Move, Game](game)(pathLength)(distance)(getAvailableMoves)(act)(_.hasWon).map (_.toList)
 
   def toString (solution: Option[List[Move]]): String =
     solution match {

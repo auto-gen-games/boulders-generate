@@ -22,13 +22,13 @@ object PuzzleCreation {
     val initialChoices = Nil ++ supportChoice (initialPuzzle.player, width, height) ++ notSquashedChoice (initialPuzzle.player) ++ notSquashedChoice (initialPuzzle.diamond)
     // Time limit on attempting to generate this puzzle
     val terminate = timeOutFromNow (timePerAttempt)
-    val solver = createSolver (terminate)(config.definition)
+    val solver = createSolver (config.definition)
     val acceptableChallenge: (Puzzle, List[Move]) => Boolean = config.definition.acceptablyHard (_, _, minChallenge)
 
     // Generate a puzzle using puzzle refinement, and perform a final check that the solution is acceptably hard
     generate (initialPuzzle, initialChoices, hopelessLength, terminate, consequences, solver, acceptableChallenge, harder,
       Puzzle.toFullyDefined, Game.apply, makeHarder, couldEnable).
-      flatMap (puzzle => createSolver (timeOutFromNow (timePerAttempt))(config.definition)(puzzle).map (solution => (puzzle, solution))).
+      flatMap (puzzle => createSolver (config.definition)(puzzle).map (solution => (puzzle, solution))).
       filter (puzzleSolution => acceptableChallenge (puzzleSolution._1, puzzleSolution._2))
   }
 
@@ -52,9 +52,8 @@ object PuzzleCreation {
   }
 
   /** Define a solver for a puzzle with a timeout based on the current time */
-  def createSolver (timeOut: () => Boolean)(implicit definition: Definition): Puzzle => Option[List[Move]] = {
-    puzzle: Puzzle => solve (Game (puzzle))(timeOut)
-  }
+  def createSolver (implicit definition: Definition): Puzzle => Option[List[Move]] =
+    puzzle => solve (Game (puzzle))
 
   /** Create the choice, if any, that needs to be made on how the given man start position should be supported. */
   def supportChoice (man: Position, width: Int, height: Int)(implicit config: CreateCommand): Option[Choice[Puzzle]] =

@@ -3,7 +3,7 @@
     "definition" : "flip",
     "biasAgainstBoulders" : 0.5,
     "puzzlesDirectory" : "puzzles",
-    "maxSolveTime" : 10000,
+    "maxAttemptTime" : 10000,
     "measuring" : false,
     "logging" : false
   },

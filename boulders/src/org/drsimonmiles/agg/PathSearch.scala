@@ -7,7 +7,6 @@ object PathSearch {
     * Perform an a-star search.
     *
     * @param start The initial state.
-    * @param terminate Returns true once a timeout has been reached.
     * @param pathLength Measures the distance travelled by the given sequence of actions
     * @param distance Heuristic for the distance of the given state to the solution.
     * @param getAvailableActions The actions available in the given state.
@@ -18,7 +17,6 @@ object PathSearch {
     * @return The path to the solution state, if one is found within the timeout.
     */
   def aStarSearch[Action, State] (start: State)
-                                 (terminate: () => Boolean)
                                  (pathLength: List[Action] => Double)
                                  (distance: State => Double)
                                  (getAvailableActions: State => Iterable[Action])
@@ -46,7 +44,6 @@ object PathSearch {
       else {
         val state = states.head
         if (reachedGoal (state._2)) Some (state._1)
-        else if (terminate ()) None
         else {
           val filtered = getAvailableActions (state._2)
             .flatMap (move => perform (state._2, move).map (result => new SolveState (state._1 :+ move, result)))

@@ -34,11 +34,11 @@ object Main extends App {
         newPuzzle.foreach (puzzleSolution => addToFile (puzzlesFile, puzzleSolution._1))
         created += newPuzzle.size
       }
-    case SolveCommand (definition, puzzlesDirectory, inputFile, outputFile, _, _, _) =>
+    case SolveCommand (definition, puzzlesDirectory, inputFile, outputFile, _, _) =>
       processPuzzles (puzzlesDirectory, inputFile, outputFile){
-        _.map (puzzle => Solve.toString (Solve.solve (Game (puzzle))(() => false)(definition))).mkString ("\n")
+        _.map (puzzle => Solve.toString (Solve.solve (Game (puzzle))(definition))).mkString ("\n")
       }
-    case command @ ShowCommand (definition, puzzlesDirectory, inputFile, outputFile, _, _, _) =>
+    case command @ ShowCommand (definition, puzzlesDirectory, inputFile, outputFile, _, _) =>
       processPuzzles (puzzlesDirectory, inputFile, outputFile){
         _.map (p => Puzzle.toString (p)(command)).mkString ("\n\n")
       }
